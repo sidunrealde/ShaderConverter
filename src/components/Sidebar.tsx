@@ -26,7 +26,10 @@ export const Sidebar = ({
     className
 }: SidebarProps) => {
     const [activeTab, setActiveTab] = useState<Tab>('library');
-    const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+    // Start with all categories collapsed
+    const allCategories = [...new Set(SHADER_LIBRARY.map(s => s.category))];
+    const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set(allCategories));
 
     // Group snippets by category
     const categories = Object.entries(
@@ -54,18 +57,7 @@ export const Sidebar = ({
             isDarkMode ? "border-zinc-800 bg-zinc-900" : "border-gray-200 bg-white",
             className
         )} style={{ width: '260px' }}>
-            {/* Header with Logo */}
-            <div className={clsx(
-                "flex items-center gap-2 px-4 py-3 border-b",
-                isDarkMode ? "border-zinc-800" : "border-gray-200"
-            )}>
-                <img src="/favicon.png" alt="Logo" className="w-6 h-6" />
-                <span className={clsx("font-bold text-sm", isDarkMode ? "text-white" : "text-gray-900")}>
-                    Shader Converter
-                </span>
-            </div>
-
-            {/* Tab Header */}
+            {/* Tab Header - No duplicate title */}
             <div className={clsx("flex border-b", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
                 <button
                     onClick={() => setActiveTab('library')}
@@ -107,7 +99,7 @@ export const Sidebar = ({
                                         isDarkMode ? "text-zinc-400 hover:text-zinc-200" : "text-gray-500 hover:text-gray-700"
                                     )}
                                 >
-                                    <span>{category}</span>
+                                    <span>{category} ({snippets.length})</span>
                                     <svg
                                         className={clsx(
                                             "w-4 h-4 transition-transform",
@@ -180,8 +172,8 @@ export const Sidebar = ({
                             <h3 className={clsx("mb-2 text-xs font-bold uppercase tracking-wider", isDarkMode ? "text-zinc-500" : "text-gray-500")}>
                                 Preview Mesh
                             </h3>
-                            <div className="grid grid-cols-2 gap-2">
-                                {['plane', 'box', 'sphere', 'torus', 'knot'].map(m => (
+                            <div className="grid grid-cols-3 gap-2">
+                                {['plane', 'box', 'sphere', 'torus', 'knot', 'cylinder', 'cone', 'icosahedron', 'octahedron', 'dodecahedron', 'tetrahedron', 'ring'].map(m => (
                                     <button
                                         key={m}
                                         onClick={() => onSelectMesh(m)}
@@ -256,23 +248,22 @@ export const Sidebar = ({
                 )}
             </div>
 
-            {/* Footer: Support Link */}
-            <div className={clsx("border-t p-3", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
+            {/* Footer: Larger Support Link */}
+            <div className={clsx("border-t p-4", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
                 <a
                     href="https://github.com/sponsors/sidunrealde"
                     target="_blank"
                     rel="noopener noreferrer"
                     className={clsx(
-                        "flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-                        isDarkMode
-                            ? "bg-gradient-to-r from-pink-600 to-purple-600 text-white hover:from-pink-500 hover:to-purple-500"
-                            : "bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-400 hover:to-purple-400"
+                        "flex flex-col items-center justify-center gap-2 rounded-xl px-4 py-4 text-sm font-medium transition-all hover:scale-[1.02]",
+                        "bg-gradient-to-r from-pink-600 to-purple-600 text-white hover:from-pink-500 hover:to-purple-500 shadow-lg"
                     )}
                 >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                     </svg>
-                    Support This Project
+                    <span className="font-semibold">Support This Project</span>
+                    <span className="text-xs text-white/70">Become a sponsor on GitHub</span>
                 </a>
             </div>
         </div>

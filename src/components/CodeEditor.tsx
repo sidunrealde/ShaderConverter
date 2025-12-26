@@ -6,9 +6,10 @@ interface CodeEditorProps {
     language?: string;
     onChange?: (value: string) => void;
     readOnly?: boolean;
+    isDarkMode?: boolean;
 }
 
-export const CodeEditor = ({ value, language = 'cpp', onChange, readOnly = false }: CodeEditorProps) => {
+export const CodeEditor = ({ value, language = 'cpp', onChange, readOnly = false, isDarkMode = true }: CodeEditorProps) => {
     const editorRef = useRef<any>(null);
 
     const handleEditorDidMount: OnMount = (editor, _monaco) => {
@@ -16,7 +17,7 @@ export const CodeEditor = ({ value, language = 'cpp', onChange, readOnly = false
     };
 
     return (
-        <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-[#1e1e1e]">
+        <div className={`h-full w-full overflow-hidden rounded-md border ${isDarkMode ? 'border-zinc-700 bg-[#1e1e1e]' : 'border-gray-200 bg-white'}`}>
             <Editor
                 height="100%"
                 defaultLanguage={language}
@@ -24,7 +25,7 @@ export const CodeEditor = ({ value, language = 'cpp', onChange, readOnly = false
                 value={value}
                 onChange={(val) => onChange?.(val || '')}
                 onMount={handleEditorDidMount}
-                theme="vs-dark"
+                theme={isDarkMode ? "vs-dark" : "light"}
                 options={{
                     minimap: { enabled: false },
                     fontSize: 14,

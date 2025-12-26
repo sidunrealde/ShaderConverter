@@ -78,7 +78,6 @@ function App() {
                     <img src="/favicon.png" alt="Logo" className="w-7 h-7" />
                     <h1 className="text-lg font-bold tracking-tight">
                         Shader Converter
-                        <span className="ml-2 text-[10px] text-green-500 font-mono bg-green-500/10 px-1.5 py-0.5 rounded">WASM</span>
                     </h1>
                 </div>
 
@@ -146,7 +145,7 @@ function App() {
                                 </span>
                             </div>
                             <div className="flex-1 min-h-0">
-                                <CodeEditor value={glsl} onChange={setGlsl} language="cpp" />
+                                <CodeEditor value={glsl} onChange={setGlsl} language="cpp" isDarkMode={isDarkMode} />
                             </div>
                         </div>
 
@@ -175,7 +174,7 @@ function App() {
                             </span>
                         </div>
                         <div className="flex-1 min-h-0">
-                            <CodeEditor value={output} readOnly language="cpp" />
+                            <CodeEditor value={output} readOnly language="cpp" isDarkMode={isDarkMode} />
                         </div>
                     </div>
                 </div>
