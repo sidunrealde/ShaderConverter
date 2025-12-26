@@ -11,15 +11,30 @@ interface ShaderPreviewProps {
     meshType?: MeshType;
 }
 
-const DEFAULT_VERTEX = `
-varying vec2 vUv;
+// Proper GLSL3 Vertex Shader
+const GLSL3_VERTEX = `
+in vec3 position;
+in vec3 normal;
+in vec2 uv;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 normalMatrix;
+
+out vec2 vUv;
+out vec3 vNormal;
+out vec3 vViewPosition;
+
 void main() {
   vUv = uv;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vNormal = normalize(normalMatrix * normal);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  vViewPosition = -mvPosition.xyz;
+  gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
-const PreviewMesh = ({ fragmentShader, vertexShader = DEFAULT_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
+const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
     const mesh = useRef<THREE.Mesh>(null);
 
     const uniforms = useMemo(() => ({
@@ -40,6 +55,7 @@ const PreviewMesh = ({ fragmentShader, vertexShader = DEFAULT_VERTEX, meshType =
             fragmentShader={fragmentShader}
             uniforms={uniforms}
             side={THREE.DoubleSide}
+            glslVersion={THREE.GLSL3}
         />
     );
 
