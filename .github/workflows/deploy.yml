@@ -38,6 +38,11 @@ jobs:
       - name: Build WASM
         run: npm run build:wasm
 
+      - name: Move WASM to Src
+        run: |
+          mkdir -p src/engine-pkg
+          cp -r engine/pkg/* src/engine-pkg/
+
       - name: Build Frontend
         run: npm run build
 
