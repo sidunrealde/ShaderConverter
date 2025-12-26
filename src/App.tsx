@@ -1,14 +1,16 @@
+
 import { useState } from 'react';
 import { CodeEditor } from './components/CodeEditor';
 import { useWasm } from './hooks/useWasm';
 import { SHADER_LIBRARY } from './data/shaderLibrary';
-import { ShaderPreview } from './components/ShaderPreview';
+import { ShaderPreview, MeshType } from './components/ShaderPreview';
 import { UrlService } from './services/urlService';
 import { useEffect } from 'react';
 
 function App() {
     const { wasm, isReady, error } = useWasm();
     const [glsl, setGlsl] = useState<string>(SHADER_LIBRARY[0].code);
+    const [meshType, setMeshType] = useState<MeshType>('box');
     const [output, setOutput] = useState<string>('// Converted code will appear here');
     const [target, setTarget] = useState('hlsl');
 
@@ -87,15 +89,18 @@ function App() {
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-zinc-400 font-medium">Input (GLSL)</span>
                                 <div className="flex gap-2">
-                                    {SHADER_LIBRARY.map(s => (
-                                        <button
-                                            key={s.id}
-                                            onClick={() => setGlsl(s.code)}
-                                            className="bg-zinc-800 hover:bg-zinc-700 px-2 py-0.5 text-xs rounded border border-zinc-700"
-                                        >
-                                            {s.name}
-                                        </button>
-                                    ))}
+                                    <select
+                                        className="bg-zinc-800 text-xs text-white border border-zinc-700 rounded px-2 py-1"
+                                        onChange={(e) => {
+                                            const s = SHADER_LIBRARY.find(x => x.id === e.target.value);
+                                            if (s) setGlsl(s.code);
+                                        }}
+                                    >
+                                        <option value="">Load Snippet...</option>
+                                        {SHADER_LIBRARY.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                             <CodeEditor value={glsl} onChange={setGlsl} language="cpp" />
@@ -103,8 +108,21 @@ function App() {
 
                         {/* Live Preview */}
                         <div className="flex-1 flex flex-col gap-2">
-                            <span className="text-sm text-zinc-400 font-medium">Live Preview</span>
-                            <ShaderPreview fragmentShader={glsl} />
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-400 font-medium">Live Preview</span>
+                                <select
+                                    value={meshType}
+                                    onChange={(e) => setMeshType(e.target.value as MeshType)}
+                                    className="bg-zinc-800 text-xs text-white border border-zinc-700 rounded px-2 py-1"
+                                >
+                                    <option value="plane">Plane</option>
+                                    <option value="box">Box</option>
+                                    <option value="sphere">Sphere</option>
+                                    <option value="torus">Torus</option>
+                                    <option value="knot">Knot</option>
+                                </select>
+                            </div>
+                            <ShaderPreview fragmentShader={glsl} meshType={meshType} />
                         </div>
                     </div>
 

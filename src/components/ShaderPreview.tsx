@@ -1,10 +1,14 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useRef, useMemo } from 'react';
+import { OrbitControls, Sphere, Box, Torus, Plane, TorusKnot } from '@react-three/drei';
 import * as THREE from 'three';
+
+export type MeshType = 'plane' | 'box' | 'sphere' | 'torus' | 'knot';
 
 interface ShaderPreviewProps {
     fragmentShader: string;
     vertexShader?: string;
+    meshType?: MeshType;
 }
 
 const DEFAULT_VERTEX = `
@@ -15,7 +19,7 @@ void main() {
 }
 `;
 
-const PreviewMesh = ({ fragmentShader, vertexShader = DEFAULT_VERTEX }: ShaderPreviewProps) => {
+const PreviewMesh = ({ fragmentShader, vertexShader = DEFAULT_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
     const mesh = useRef<THREE.Mesh>(null);
 
     const uniforms = useMemo(() => ({
@@ -30,27 +34,38 @@ const PreviewMesh = ({ fragmentShader, vertexShader = DEFAULT_VERTEX }: ShaderPr
         }
     });
 
-    // Basic failure safety: if shader is invalid, Three.js might warn but not crash app usually.
-    // Ideally we would validate before passing here, but for now we rely on simple connection.
-
-    return (
-        <mesh ref={mesh}>
-            <planeGeometry args={[2, 2]} />
-            <shaderMaterial
-                vertexShader={vertexShader}
-                fragmentShader={fragmentShader}
-                uniforms={uniforms}
-                side={THREE.DoubleSide}
-            />
-        </mesh>
+    const Material = (
+        <shaderMaterial
+            vertexShader={vertexShader}
+            fragmentShader={fragmentShader}
+            uniforms={uniforms}
+            side={THREE.DoubleSide}
+        />
     );
+
+    switch (meshType) {
+        case 'box':
+            return <Box args={[1.5, 1.5, 1.5]} ref={mesh}>{Material}</Box>;
+        case 'sphere':
+            return <Sphere args={[1, 64, 64]} ref={mesh}>{Material}</Sphere>;
+        case 'torus':
+            return <Torus args={[0.8, 0.4, 64, 64]} ref={mesh}>{Material}</Torus>;
+        case 'knot':
+            return <TorusKnot args={[0.6, 0.2, 128, 32]} ref={mesh}>{Material}</TorusKnot>;
+        case 'plane':
+        default:
+            return <Plane args={[2, 2]} ref={mesh}>{Material}</Plane>;
+    }
 };
 
 export const ShaderPreview = (props: ShaderPreviewProps) => {
     return (
-        <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-black">
-            <Canvas camera={{ position: [0, 0, 1] }}>
-                <PreviewMesh {...props} />
+        <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-black relative">
+            <Canvas camera={{ position: [0, 0, 2] }}>
+                <color attach="background" args={['#111']} />
+                <OrbitControls makeDefault enableDamping />
+                <PreviewMesh {...props} meshType={props.meshType || 'plane'} />
+                <gridHelper args={[10, 10]} position={[0, -2, 0]} />
             </Canvas>
         </div>
     );
