@@ -34,7 +34,7 @@ pub fn convert_glsl(code: &str, format: &str, stage_str: &str) -> ConversionOutp
     };
 
     // 1. Parse GLSL
-    let mut parser = front::glsl::Parser::default();
+    let mut parser = front::glsl::Frontend::default();
     let options = front::glsl::Options {
         stage,
         defines: Default::default(),
