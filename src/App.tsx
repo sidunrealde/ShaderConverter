@@ -1,5 +1,7 @@
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
+import { Allotment } from 'allotment';
+import 'allotment/dist/style.css';
 import { CodeEditor } from './components/CodeEditor';
 import { useWasm } from './hooks/useWasm';
 import { SHADER_LIBRARY } from './data/shaderLibrary';
@@ -119,7 +121,7 @@ function App() {
             </header>
 
             <main className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
+                {/* Sidebar (fixed width) */}
                 <Sidebar
                     onSelectSnippet={setGlsl}
                     currentMesh={meshType}
@@ -130,53 +132,63 @@ function App() {
                     onToggleTheme={toggleTheme}
                 />
 
-                {/* Main Content Area */}
-                <div className="flex h-full flex-1 flex-col">
-                    {/* Upper: Editor & Preview */}
-                    <div className={clsx("flex h-2/3 border-b", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
-                        {/* Input Editor */}
-                        <div className={clsx("flex w-1/2 flex-col border-r", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
-                            <div className={clsx(
-                                "flex items-center justify-between px-4 py-2 border-b",
-                                isDarkMode ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-200"
-                            )}>
-                                <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
-                                    GLSL Source
-                                </span>
-                            </div>
-                            <div className="flex-1 min-h-0">
-                                <CodeEditor value={glsl} onChange={setGlsl} language="cpp" isDarkMode={isDarkMode} />
-                            </div>
-                        </div>
+                {/* Main Content Area with Resizable Panels */}
+                <div className="flex-1 overflow-hidden">
+                    <Allotment vertical>
+                        {/* Upper: Editor & Preview */}
+                        <Allotment.Pane preferredSize="65%">
+                            <Allotment>
+                                {/* Input Editor */}
+                                <Allotment.Pane preferredSize="50%">
+                                    <div className="flex h-full flex-col">
+                                        <div className={clsx(
+                                            "flex items-center justify-between px-4 py-2 border-b",
+                                            isDarkMode ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-200"
+                                        )}>
+                                            <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
+                                                GLSL Source
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 min-h-0">
+                                            <CodeEditor value={glsl} onChange={setGlsl} language="cpp" isDarkMode={isDarkMode} />
+                                        </div>
+                                    </div>
+                                </Allotment.Pane>
 
-                        {/* Preview */}
-                        <div className="relative flex w-1/2 flex-col bg-black">
-                            <div className="absolute top-2 right-2 z-10 flex gap-2">
-                                <div className="rounded bg-black/50 px-2 py-1 text-xs text-zinc-400 backdrop-blur">
-                                    {meshType.startsWith('custom:') ? 'CUSTOM' : meshType.toUpperCase()}
+                                {/* Preview */}
+                                <Allotment.Pane preferredSize="50%">
+                                    <div className="relative h-full bg-black">
+                                        <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                            <div className="rounded bg-black/50 px-2 py-1 text-xs text-zinc-400 backdrop-blur">
+                                                {meshType.startsWith('custom:') ? 'CUSTOM' : meshType.toUpperCase()}
+                                            </div>
+                                        </div>
+                                        <ShaderPreview fragmentShader={glsl} meshType={meshType} />
+                                    </div>
+                                </Allotment.Pane>
+                            </Allotment>
+                        </Allotment.Pane>
+
+                        {/* Lower: Output */}
+                        <Allotment.Pane preferredSize="35%">
+                            <div className={clsx("flex h-full flex-col", isDarkMode ? "bg-zinc-900" : "bg-white")}>
+                                <div className={clsx(
+                                    "flex items-center justify-between px-4 py-2 border-b",
+                                    isDarkMode ? "border-zinc-800" : "border-gray-200"
+                                )}>
+                                    <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
+                                        Compiled Output ({target.toUpperCase()})
+                                    </span>
+                                    <span className={clsx("text-xs font-medium", output.startsWith('// Error') ? "text-red-400" : "text-green-500")}>
+                                        {output.startsWith('// Error') ? '❌ Compilation Failed' : '✅ Ready'}
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-h-0">
+                                    <CodeEditor value={output} readOnly language="cpp" isDarkMode={isDarkMode} />
                                 </div>
                             </div>
-                            <ShaderPreview fragmentShader={glsl} meshType={meshType} />
-                        </div>
-                    </div>
-
-                    {/* Lower: Output */}
-                    <div className={clsx("flex h-1/3 flex-col", isDarkMode ? "bg-zinc-900" : "bg-white")}>
-                        <div className={clsx(
-                            "flex items-center justify-between px-4 py-2 border-b",
-                            isDarkMode ? "border-zinc-800" : "border-gray-200"
-                        )}>
-                            <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
-                                Compiled Output ({target.toUpperCase()})
-                            </span>
-                            <span className={clsx("text-xs font-medium", output.startsWith('// Error') ? "text-red-400" : "text-green-500")}>
-                                {output.startsWith('// Error') ? '❌ Compilation Failed' : '✅ Ready'}
-                            </span>
-                        </div>
-                        <div className="flex-1 min-h-0">
-                            <CodeEditor value={output} readOnly language="cpp" isDarkMode={isDarkMode} />
-                        </div>
-                    </div>
+                        </Allotment.Pane>
+                    </Allotment>
                 </div>
             </main>
         </div>
