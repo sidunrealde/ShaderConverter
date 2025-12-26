@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { CodeEditor } from './components/CodeEditor';
 import { useWasm } from './hooks/useWasm';
+import { SHADER_LIBRARY } from './data/shaderLibrary';
 
 function App() {
     const { wasm, isReady, error } = useWasm();
-    const [glsl, setGlsl] = useState<string>(`// Basic GLSL
-void main() {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-}`);
+    const [glsl, setGlsl] = useState<string>(SHADER_LIBRARY[0].code);
     const [output, setOutput] = useState<string>('// Converted code will appear here');
     const [target, setTarget] = useState('hlsl');
 
@@ -57,7 +55,20 @@ void main() {
             <main className="flex flex-1 overflow-hidden">
                 <div className="flex h-full w-full flex-col p-4 md:flex-row md:gap-4">
                     <div className="flex-1 flex flex-col gap-2 min-h-0">
-                        <span className="text-sm text-zinc-400 font-medium">Input (GLSL)</span>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-zinc-400 font-medium">Input (GLSL)</span>
+                            <div className="flex gap-2">
+                                {SHADER_LIBRARY.map(s => (
+                                    <button
+                                        key={s.id}
+                                        onClick={() => setGlsl(s.code)}
+                                        className="bg-zinc-800 hover:bg-zinc-700 px-2 py-0.5 text-xs rounded border border-zinc-700"
+                                    >
+                                        {s.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <CodeEditor value={glsl} onChange={setGlsl} language="cpp" />
                     </div>
 
