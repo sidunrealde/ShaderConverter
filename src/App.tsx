@@ -67,13 +67,6 @@ function App() {
         );
     }
 
-    const selectStyle = clsx(
-        "rounded border px-3 py-1.5 text-sm font-medium transition-colors",
-        isDarkMode
-            ? "border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
-            : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
-    );
-
     return (
         <div className={clsx(
             "flex h-screen flex-col transition-colors",
@@ -91,49 +84,69 @@ function App() {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {/* Source Language */}
-                    <select
-                        value={sourceLang}
-                        onChange={e => setSourceLang(e.target.value)}
-                        className={selectStyle}
-                    >
-                        <option value="glsl">GLSL</option>
-                        <option value="wgsl">WGSL</option>
-                    </select>
+                <div className="flex items-center gap-4">
+                    {/* Conversion Settings Group */}
+                    <div className={clsx(
+                        "flex items-center gap-2 rounded-lg px-3 py-1.5",
+                        isDarkMode ? "bg-zinc-800" : "bg-gray-100"
+                    )}>
+                        <span className={clsx("text-xs font-medium", isDarkMode ? "text-zinc-500" : "text-gray-500")}>From</span>
+                        <select
+                            value={sourceLang}
+                            onChange={e => setSourceLang(e.target.value)}
+                            className={clsx(
+                                "rounded border-0 bg-transparent px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500",
+                                isDarkMode ? "text-white" : "text-gray-900"
+                            )}
+                        >
+                            <option value="glsl">GLSL</option>
+                            <option value="wgsl">WGSL</option>
+                        </select>
 
-                    <span className={clsx("text-sm", isDarkMode ? "text-zinc-500" : "text-gray-400")}>→</span>
+                        <svg className={clsx("w-4 h-4", isDarkMode ? "text-zinc-500" : "text-gray-400")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
 
-                    {/* Target Language */}
-                    <select
-                        value={targetLang}
-                        onChange={e => setTargetLang(e.target.value)}
-                        className={selectStyle}
-                    >
-                        <option value="hlsl">HLSL</option>
-                        <option value="wgsl">WGSL</option>
-                        <option value="msl">MSL</option>
-                        <option value="glsl">GLSL</option>
-                    </select>
+                        <span className={clsx("text-xs font-medium", isDarkMode ? "text-zinc-500" : "text-gray-500")}>To</span>
+                        <select
+                            value={targetLang}
+                            onChange={e => setTargetLang(e.target.value)}
+                            className={clsx(
+                                "rounded border-0 bg-transparent px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500",
+                                isDarkMode ? "text-white" : "text-gray-900"
+                            )}
+                        >
+                            <option value="hlsl">HLSL</option>
+                            <option value="wgsl">WGSL</option>
+                            <option value="msl">MSL</option>
+                            <option value="glsl">GLSL</option>
+                        </select>
+                    </div>
 
-                    <button
-                        onClick={handleShare}
-                        className={clsx(
-                            "rounded border px-3 py-1.5 text-sm font-medium transition-colors ml-2",
-                            isDarkMode
-                                ? "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                                : "border-gray-200 bg-white hover:bg-gray-50"
-                        )}
-                    >
-                        📤 Share
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleConvert}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
+                        >
+                            Convert
+                        </button>
 
-                    <button
-                        onClick={handleConvert}
-                        className="rounded bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
-                    >
-                        Convert
-                    </button>
+                        <button
+                            onClick={handleShare}
+                            className={clsx(
+                                "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                                isDarkMode
+                                    ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                    : "border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            )}
+                            title="Copy shareable link"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </header>
 
