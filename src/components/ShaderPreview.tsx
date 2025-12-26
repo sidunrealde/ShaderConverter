@@ -1,9 +1,8 @@
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { useRef, useMemo, Component, ReactNode, Suspense } from 'react';
-import { OrbitControls, Sphere, Box, Torus, Plane, TorusKnot, Center } from '@react-three/drei';
+import { useRef, useMemo, Component, ReactNode, Suspense, useState } from 'react';
+import { OrbitControls, Sphere, Box, Torus, Plane, TorusKnot, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
-
 
 export type MeshType = 'plane' | 'box' | 'sphere' | 'torus' | 'knot' | string;
 
@@ -28,8 +27,26 @@ void main() {
 }
 `;
 
-const CustomModel = ({ url, material }: { url: string, material: THREE.ShaderMaterial }) => {
+// Separate component for custom models to avoid hooks rule violation
+const CustomModelMesh = ({ url, fragmentShader, vertexShader }: { url: string, fragmentShader: string, vertexShader: string }) => {
     const gltf = useLoader(GLTFLoader, url);
+
+    const uniforms = useMemo(() => ({
+        uTime: { value: 0 },
+        uResolution: { value: new THREE.Vector2() },
+    }), []);
+
+    const material = useMemo(() => new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms,
+        side: THREE.DoubleSide,
+        glslVersion: THREE.GLSL3
+    }), [fragmentShader, vertexShader, uniforms]);
+
+    useFrame((state) => {
+        material.uniforms.uTime.value = state.clock.getElapsedTime();
+    });
 
     const scene = useMemo(() => {
         if (!gltf) return null;
@@ -40,8 +57,14 @@ const CustomModel = ({ url, material }: { url: string, material: THREE.ShaderMat
         const size = new THREE.Vector3();
         box.getSize(size);
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 2.0 / (maxDim || 1); // Avoid div by zero
+        const scale = 2.0 / (maxDim || 1);
         s.scale.setScalar(scale);
+
+        // Center the model
+        box.setFromObject(s);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        s.position.sub(center);
 
         s.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
@@ -51,14 +74,10 @@ const CustomModel = ({ url, material }: { url: string, material: THREE.ShaderMat
         return s;
     }, [gltf, material]);
 
-    return scene ? (
-        <Center>
-            <primitive object={scene} />
-        </Center>
-    ) : null;
+    return scene ? <primitive object={scene} /> : null;
 };
 
-const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
+const PrimitiveMesh = ({ fragmentShader, vertexShader, meshType }: { fragmentShader: string, vertexShader: string, meshType: string }) => {
     const mesh = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -68,43 +87,20 @@ const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = '
     }), []);
 
     useFrame((state) => {
-        const { clock } = state;
-        if (mesh.current) {
-            (mesh.current.material as THREE.ShaderMaterial).uniforms.uTime.value = clock.getElapsedTime();
-        }
         if (materialRef.current) {
-            materialRef.current.uniforms.uTime.value = clock.getElapsedTime();
+            materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
         }
     });
 
-    // Fallback shader to prevent crash and ensure visibility
-    const safeFragmentShader = fragmentShader || `
-        out vec4 fragColor;
-        void main() { fragColor = vec4(1.0, 0.0, 1.0, 1.0); }
-    `;
-
     const materialConfig = {
         vertexShader,
-        fragmentShader: safeFragmentShader,
+        fragmentShader,
         uniforms,
         side: THREE.DoubleSide,
         glslVersion: THREE.GLSL3
     };
 
-    // key={safeFragmentShader} forces re-creation on shader change
-    const Material = <shaderMaterial key={safeFragmentShader} ref={materialRef} attach="material" {...materialConfig} />;
-
-    if (meshType.startsWith('custom:')) {
-        const url = meshType.replace('custom:', '');
-        // Force new material instance when shader stays same but mesh changes? No, reuse config.
-        const rawMat = useMemo(() => new THREE.ShaderMaterial(materialConfig), [safeFragmentShader, vertexShader]);
-
-        useFrame((state) => {
-            rawMat.uniforms.uTime.value = state.clock.getElapsedTime();
-        });
-
-        return <CustomModel url={url} material={rawMat} />;
-    }
+    const Material = <shaderMaterial key={fragmentShader} ref={materialRef} attach="material" {...materialConfig} />;
 
     switch (meshType) {
         case 'box':
@@ -121,13 +117,34 @@ const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = '
     }
 };
 
-class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode }, { hasError: boolean }> {
+const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
+    // Fallback shader to prevent crash
+    const safeFragmentShader = fragmentShader || `
+        out vec4 fragColor;
+        void main() { fragColor = vec4(1.0, 0.0, 1.0, 1.0); }
+    `;
+
+    if (meshType.startsWith('custom:')) {
+        const url = meshType.replace('custom:', '');
+        return <CustomModelMesh url={url} fragmentShader={safeFragmentShader} vertexShader={vertexShader} />;
+    }
+
+    return <PrimitiveMesh fragmentShader={safeFragmentShader} vertexShader={vertexShader} meshType={meshType} />;
+};
+
+class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode, resetKey?: string }, { hasError: boolean }> {
     constructor(props: any) {
         super(props);
         this.state = { hasError: false };
     }
     static getDerivedStateFromError() {
         return { hasError: true };
+    }
+    componentDidUpdate(prevProps: { resetKey?: string }) {
+        // Reset error state when resetKey changes
+        if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+            this.setState({ hasError: false });
+        }
     }
     componentDidCatch(error: any, errorInfo: any) {
         console.error("ShaderPreview Error:", error, errorInfo);
@@ -147,17 +164,74 @@ const LoadingFallback = () => (
     </mesh>
 );
 
+// Rotatable Environment for HDRI lighting
+const RotatableEnvironment = ({ enabled, rotation }: { enabled: boolean, rotation: number }) => {
+    if (!enabled) return null;
+    return (
+        <Environment
+            preset="sunset"
+            background={false}
+            environmentRotation={[0, rotation, 0]}
+        />
+    );
+};
+
 export const ShaderPreview = (props: ShaderPreviewProps) => {
+    const [lightingMode, setLightingMode] = useState<'basic' | 'hdri'>('basic');
+    const [hdriRotation, setHdriRotation] = useState(0);
+
     return (
         <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-black relative">
+            {/* Lighting Controls */}
+            <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+                <div className="flex gap-1">
+                    <button
+                        onClick={() => setLightingMode('basic')}
+                        className={`px-2 py-1 text-[10px] rounded ${lightingMode === 'basic' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                    >
+                        Basic
+                    </button>
+                    <button
+                        onClick={() => setLightingMode('hdri')}
+                        className={`px-2 py-1 text-[10px] rounded ${lightingMode === 'hdri' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                    >
+                        HDRI
+                    </button>
+                </div>
+                {lightingMode === 'hdri' && (
+                    <input
+                        type="range"
+                        min="0"
+                        max={Math.PI * 2}
+                        step="0.1"
+                        value={hdriRotation}
+                        onChange={(e) => setHdriRotation(parseFloat(e.target.value))}
+                        className="w-20 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+                        title="Rotate HDRI"
+                    />
+                )}
+            </div>
+
             <Canvas camera={{ position: [0, 0, 3], fov: 75 }}>
                 <color attach="background" args={['#111']} />
                 <OrbitControls makeDefault />
-                <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} />
+
+                {/* Lighting */}
+                {lightingMode === 'basic' ? (
+                    <>
+                        <ambientLight intensity={0.5} />
+                        <pointLight position={[10, 10, 10]} />
+                    </>
+                ) : (
+                    <RotatableEnvironment enabled={true} rotation={hdriRotation} />
+                )}
+
                 <gridHelper args={[20, 20, 0x444444, 0x222222]} />
 
-                <ErrorBoundary fallback={<mesh><boxGeometry /><meshBasicMaterial color="magenta" /></mesh>}>
+                <ErrorBoundary
+                    resetKey={props.meshType}
+                    fallback={<mesh><boxGeometry /><meshBasicMaterial color="magenta" /></mesh>}
+                >
                     <Suspense fallback={<LoadingFallback />}>
                         <PreviewMesh {...props} meshType={props.meshType || 'plane'} />
                     </Suspense>
