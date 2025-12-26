@@ -3,7 +3,7 @@ import { useRef, useMemo } from 'react';
 import { OrbitControls, Sphere, Box, Torus, Plane, TorusKnot } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
-import { OBJLoader } from 'three-stdlib';
+
 
 export type MeshType = 'plane' | 'box' | 'sphere' | 'torus' | 'knot' | string;
 
