@@ -20,7 +20,7 @@ export function useWasm() {
                 const module = await import('../engine-pkg/shader_converter_engine.js');
                 await module.default(); // Initialize the WASM memory
                 module.init_panic_hook();
-                setWasm(module);
+                setWasm(module as unknown as WasmModule);
             } catch (e) {
                 console.error("Failed to load WASM module", e);
                 setError(e);
