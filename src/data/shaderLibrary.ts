@@ -281,5 +281,175 @@ void main() {
     float vig = 1.0 - length(p) * 0.5;
     fragColor = vec4(col * (0.9 + scan) * vig, 1.0);
 }`
+    },
+    // --- VFX ---
+    {
+        id: 'dissolve-noise',
+        name: 'Noise Dissolve',
+        category: 'art',
+        code: `${HEADER}
+// uniform sampler2D u_noise; // TODO: Texture support
+void main() {
+    float n = sin(vUv.x * 50.0 + uTime) * 0.5 + 0.5; // Fake noise
+    float threshold = sin(uTime) * 0.5 + 0.5;
+    float alpha = step(threshold, n);
+    fragColor = vec4(1.0, alpha, alpha, 1.0);
+}`
+    },
+    {
+        id: 'rim-lighting-new',
+        name: 'Fresnel Rim',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 v = normalize(vViewPosition);
+    float rim = 1.0 - max(dot(n, v), 0.0);
+    rim = pow(rim, 3.0);
+    fragColor = vec4(vec3(rim), 1.0);
+}`
+    },
+    {
+        id: 'pulse-glow',
+        name: 'Pulsing Glow',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    float pulse = sin(uTime * 3.0) * 0.5 + 0.5;
+    float glow = pulse * pulse;
+    fragColor = vec4(glow, glow * 0.5, 1.0, 1.0);
+}`
+    },
+    {
+        id: 'fire-simple',
+        name: 'Simple Fire',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float fire = sin(uv.y * 10.0 + uTime * 2.0) * exp(-uv.y * 2.0);
+    fragColor = vec4(fire * 0.8, fire * 0.4, fire * 0.1, 1.0);
+}`
+    },
+    {
+        id: 'portal-vortex',
+        name: 'Portal Vortex',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv - 0.5;
+    float r = length(uv);
+    float a = atan(uv.y, uv.x) + uTime;
+    fragColor = vec4(sin(r * 10.0 - uTime * 5.0), sin(a * 10.0), cos(r * 5.0), 1.0);
+}`
+    },
+    {
+        id: 'scan-line',
+        name: 'Scan Lines',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float scan = sin(uv.y * 800.0 + uTime * 10.0) * 0.5 + 0.5;
+    fragColor = vec4(vec3(0.0, 1.0, 0.0) * scan, 1.0);
+}`
+    },
+    {
+        id: 'electricity',
+        name: 'Lightning Bolt',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float bolt = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+    bolt = smoothstep(0.98, 1.0, bolt) * sin(uTime * 20.0);
+    fragColor = vec4(0.0, bolt, 1.0, 1.0);
+}`
+    },
+    {
+        id: 'heart-beat',
+        name: 'Heartbeat',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    float beat = abs(sin(uTime * 2.0)) * exp(-abs(sin(uTime)));
+    fragColor = vec4(1.0, 0.2, 0.5, 1.0) * beat;
+}`
+    },
+    {
+        id: 'matrix-rain',
+        name: 'Matrix Rain',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float rain = fract(sin(dot(uv + uTime * 0.1, vec2(12.9898, 78.233))) * 43758.5453);
+    fragColor = vec4(0.0, rain, 0.0, 1.0);
+}`
+    },
+    {
+        id: 'terrain-height',
+        name: 'Height Color',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    float h = vUv.y; // Fake height
+    vec3 color = h > 0.5 ? vec3(0.8, 0.6, 0.2) : h > 0.2 ? vec3(0.2, 0.6, 0.2) : vec3(0.1, 0.2, 0.4);
+    fragColor = vec4(color, 1.0);
+}`
+    },
+    // --- UTILITY ---
+    {
+        id: 'wireframe-grid',
+        name: 'Wireframe Grid',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float wire = step(0.98, max(abs(fract(uv.x * 10.0) - 0.5), abs(fract(uv.y * 10.0) - 0.5)));
+    fragColor = vec4(0.0, 1.0, wire, 1.0);
+}`
+    },
+    {
+        id: 'checkerboard',
+        name: 'Checkerboard',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float check = mod(floor(uv.x * 8.0) + floor(uv.y * 8.0), 2.0);
+    fragColor = vec4(vec3(check), 1.0);
+}`
+    },
+    {
+        id: 'uv-grid',
+        name: 'UV Grid',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float grid = max(step(0.98, fract(uv.x * 10.0)), step(0.98, fract(uv.y * 10.0)));
+    fragColor = vec4(vec3(grid), 1.0);
+}`
+    },
+    {
+        id: 'gradient-radial',
+        name: 'Radial Gradient',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv - 0.5;
+    float radial = length(uv);
+    fragColor = vec4(vec3(radial), 1.0);
+}`
+    },
+    {
+        id: 'full-normal',
+        name: 'Normal Map',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    fragColor = vec4(vNormal * 0.5 + 0.5, 1.0);
+}`
     }
 ];

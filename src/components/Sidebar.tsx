@@ -87,6 +87,35 @@ export const Sidebar = ({ onSelectSnippet, currentMesh, onSelectMesh, className 
                                 ))}
                             </div>
                         </div>
+
+                        <div>
+                            <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Custom Model</h3>
+                            <div className="relative">
+                                <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-700 bg-zinc-800/50 p-4 transition-colors hover:border-zinc-500 hover:bg-zinc-800">
+                                    <div className="flex flex-col items-center justify-center gap-1 text-center">
+                                        <svg className="mb-1 h-6 w-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                        </svg>
+                                        <p className="text-xs text-zinc-400"><span className="font-semibold">Click to upload</span></p>
+                                        <p className="text-[10px] text-zinc-500">GLTF / GLB / OBJ</p>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept=".gltf,.glb,.obj"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) onSelectMesh('custom:' + URL.createObjectURL(file));
+                                        }}
+                                    />
+                                </label>
+                                {currentMesh.startsWith('custom:') && (
+                                    <p className="mt-2 text-center text-xs text-green-400">
+                                        Custom model loaded
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
