@@ -172,13 +172,13 @@ export const Sidebar = ({
                             <h3 className={clsx("mb-2 text-xs font-bold uppercase tracking-wider", isDarkMode ? "text-zinc-500" : "text-gray-500")}>
                                 Preview Mesh
                             </h3>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                                 {['plane', 'box', 'sphere', 'torus', 'knot', 'cylinder', 'cone', 'icosahedron', 'octahedron', 'dodecahedron', 'tetrahedron', 'ring'].map(m => (
                                     <button
                                         key={m}
                                         onClick={() => onSelectMesh(m)}
                                         className={clsx(
-                                            "rounded border px-2 py-2 text-xs capitalize transition-colors",
+                                            "rounded border px-2 py-2 text-xs capitalize transition-colors text-center",
                                             currentMesh === m
                                                 ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
                                                 : isDarkMode
