@@ -95,12 +95,14 @@ function App() {
                             value={sourceLang}
                             onChange={e => setSourceLang(e.target.value)}
                             className={clsx(
-                                "rounded border-0 bg-transparent px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500",
-                                isDarkMode ? "text-white" : "text-gray-900"
+                                "rounded border px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer",
+                                isDarkMode
+                                    ? "bg-zinc-700 text-white border-zinc-600"
+                                    : "bg-white text-gray-900 border-gray-300"
                             )}
                         >
-                            <option value="glsl">GLSL</option>
-                            <option value="wgsl">WGSL</option>
+                            <option value="glsl" className={isDarkMode ? "bg-zinc-700" : "bg-white"}>GLSL</option>
+                            <option value="wgsl" className={isDarkMode ? "bg-zinc-700" : "bg-white"}>WGSL</option>
                         </select>
 
                         <svg className={clsx("w-4 h-4", isDarkMode ? "text-zinc-500" : "text-gray-400")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,14 +114,16 @@ function App() {
                             value={targetLang}
                             onChange={e => setTargetLang(e.target.value)}
                             className={clsx(
-                                "rounded border-0 bg-transparent px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500",
-                                isDarkMode ? "text-white" : "text-gray-900"
+                                "rounded border px-2 py-1 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer",
+                                isDarkMode
+                                    ? "bg-zinc-700 text-white border-zinc-600"
+                                    : "bg-white text-gray-900 border-gray-300"
                             )}
                         >
-                            <option value="hlsl">HLSL</option>
-                            <option value="wgsl">WGSL</option>
-                            <option value="msl">MSL</option>
-                            <option value="glsl">GLSL</option>
+                            <option value="hlsl" className={isDarkMode ? "bg-zinc-700" : "bg-white"}>HLSL</option>
+                            <option value="wgsl" className={isDarkMode ? "bg-zinc-700" : "bg-white"}>WGSL</option>
+                            <option value="msl" className={isDarkMode ? "bg-zinc-700" : "bg-white"}>MSL</option>
+                            <option value="glsl" className={isDarkMode ? "bg-zinc-700" : "bg-white"}>GLSL</option>
                         </select>
                     </div>
 
