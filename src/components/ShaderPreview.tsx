@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { useRef, useMemo } from 'react';
-import { OrbitControls, Sphere, Box, Torus, Plane, TorusKnot } from '@react-three/drei';
+import { useRef, useMemo, Component, ReactNode, Suspense } from 'react';
+import { OrbitControls, Sphere, Box, Torus, Plane, TorusKnot, Center } from '@react-three/drei';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
 
@@ -29,12 +29,20 @@ void main() {
 `;
 
 const CustomModel = ({ url, material }: { url: string, material: THREE.ShaderMaterial }) => {
-    // Determine loader based on extension (Default to GLTF for blobs)
     const gltf = useLoader(GLTFLoader, url);
 
     const scene = useMemo(() => {
         if (!gltf) return null;
         const s = gltf.scene.clone();
+
+        // Auto-scale to fit roughly in a 2x2x2 box
+        const box = new THREE.Box3().setFromObject(s);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 2.0 / (maxDim || 1); // Avoid div by zero
+        s.scale.setScalar(scale);
+
         s.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
                 (child as THREE.Mesh).material = material;
@@ -43,7 +51,11 @@ const CustomModel = ({ url, material }: { url: string, material: THREE.ShaderMat
         return s;
     }, [gltf, material]);
 
-    return scene ? <primitive object={scene} /> : null;
+    return scene ? (
+        <Center>
+            <primitive object={scene} />
+        </Center>
+    ) : null;
 };
 
 const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
@@ -84,6 +96,7 @@ const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = '
 
     if (meshType.startsWith('custom:')) {
         const url = meshType.replace('custom:', '');
+        // Force new material instance when shader stays same but mesh changes? No, reuse config.
         const rawMat = useMemo(() => new THREE.ShaderMaterial(materialConfig), [safeFragmentShader, vertexShader]);
 
         useFrame((state) => {
@@ -107,8 +120,6 @@ const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = '
             return <Plane key="plane" args={[2, 2]} ref={mesh}>{Material}</Plane>;
     }
 };
-
-import { Component, ReactNode, Suspense } from 'react';
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode }, { hasError: boolean }> {
     constructor(props: any) {

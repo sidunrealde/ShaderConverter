@@ -6,12 +6,14 @@ interface SidebarProps {
     onSelectSnippet: (code: string) => void;
     currentMesh: string;
     onSelectMesh: (mesh: string) => void;
+    customModels?: { id: string, name: string, url: string }[];
+    onUploadModel?: (name: string, url: string) => void;
     className?: string;
 }
 
 type Tab = 'library' | 'settings' | 'info';
 
-export const Sidebar = ({ onSelectSnippet, currentMesh, onSelectMesh, className }: SidebarProps) => {
+export const Sidebar = ({ onSelectSnippet, currentMesh, onSelectMesh, customModels = [], onUploadModel, className }: SidebarProps) => {
     const [activeTab, setActiveTab] = useState<Tab>('library');
 
     // Group snippets by category
@@ -90,6 +92,28 @@ export const Sidebar = ({ onSelectSnippet, currentMesh, onSelectMesh, className 
 
                         <div>
                             <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">Custom Model</h3>
+
+                            {/* List of uploaded models */}
+                            {customModels.length > 0 && (
+                                <div className="mb-3 grid grid-cols-1 gap-2">
+                                    {customModels.map(model => (
+                                        <button
+                                            key={model.id}
+                                            onClick={() => onSelectMesh('custom:' + model.url)}
+                                            className={clsx(
+                                                "flex items-center justify-between rounded border px-3 py-2 text-xs transition-colors text-left",
+                                                currentMesh === 'custom:' + model.url
+                                                    ? "bg-blue-600/20 border-blue-500/50 text-blue-200"
+                                                    : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                            )}
+                                        >
+                                            <span className="truncate">{model.name}</span>
+                                            {currentMesh === 'custom:' + model.url && <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="relative">
                                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-zinc-700 bg-zinc-800/50 p-4 transition-colors hover:border-zinc-500 hover:bg-zinc-800">
                                     <div className="flex flex-col items-center justify-center gap-1 text-center">
@@ -105,15 +129,15 @@ export const Sidebar = ({ onSelectSnippet, currentMesh, onSelectMesh, className 
                                         accept=".gltf,.glb,.obj"
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
-                                            if (file) onSelectMesh('custom:' + URL.createObjectURL(file));
+                                            if (file && onUploadModel) {
+                                                const url = URL.createObjectURL(file);
+                                                onUploadModel(file.name, url);
+                                            } else if (file) {
+                                                onSelectMesh('custom:' + URL.createObjectURL(file));
+                                            }
                                         }}
                                     />
                                 </label>
-                                {currentMesh.startsWith('custom:') && (
-                                    <p className="mt-2 text-center text-xs text-green-400">
-                                        Custom model loaded
-                                    </p>
-                                )}
                             </div>
                         </div>
                     </div>

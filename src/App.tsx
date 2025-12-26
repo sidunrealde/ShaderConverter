@@ -13,6 +13,13 @@ function App() {
     const [meshType, setMeshType] = useState<MeshType>('box');
     const [output, setOutput] = useState<string>('// Converted code will appear here');
     const [target, setTarget] = useState('hlsl');
+    const [customModels, setCustomModels] = useState<{ id: string, name: string, url: string }[]>([]);
+
+    const handleUploadModel = (name: string, url: string) => {
+        const newModel = { id: crypto.randomUUID(), name, url };
+        setCustomModels(prev => [...prev, newModel]);
+        setMeshType(`custom:${url}`);
+    };
 
     useEffect(() => {
         const hash = window.location.hash.slice(1);
@@ -85,6 +92,8 @@ function App() {
                     onSelectSnippet={setGlsl}
                     currentMesh={meshType}
                     onSelectMesh={(m) => setMeshType(m as MeshType)}
+                    customModels={customModels}
+                    onUploadModel={handleUploadModel}
                 />
 
                 {/* Main Content Area */}
