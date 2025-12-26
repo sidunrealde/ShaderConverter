@@ -33,6 +33,30 @@ pub fn convert_glsl(code: &str, format: &str, stage_str: &str) -> ConversionOutp
         _ => naga::ShaderStage::Fragment,
     };
 
+    // Preprocessing Step for Naga/Vulkan Compatibility
+    // 1. Remove ES headers if present
+    // 2. Add #version 440
+    // 3. Wrap standard Three.js uniforms (uTime, uResolution) into a global block
+    
+    let mut clean_code = code.lines()
+        .filter(|l| !l.starts_with("#version"))
+        .filter(|l| !l.starts_with("precision"))
+        .collect::<Vec<&str>>()
+        .join("\n");
+        
+    // Replace standard uniforms with commented out versions to prevent duplicate definition in the block
+    clean_code = clean_code.replace("uniform float uTime;", "// uniform float uTime;");
+    clean_code = clean_code.replace("uniform vec2 uResolution;", "// uniform vec2 uResolution;");
+
+    // Construct the "Vulkanized" header
+    // Use binding set 0, binding 0 as a default standard for our tool
+    let refined_code = format!(r#"#version 450
+layout(std140, set=0, binding=0) uniform Globals {{
+    float uTime;
+    vec2 uResolution;
+}};
+{}"#, clean_code);
+
     // 1. Parse GLSL
     let mut parser = front::glsl::Frontend::default();
     let options = front::glsl::Options {
@@ -40,9 +64,9 @@ pub fn convert_glsl(code: &str, format: &str, stage_str: &str) -> ConversionOutp
         defines: Default::default(),
     };
     
-    let module = match parser.parse(&options, code) {
+    let module = match parser.parse(&options, &refined_code) {
         Ok(m) => m,
-        Err(e) => return error_output(&format!("GLSL Parse Error: {:?}", e)),
+        Err(e) => return error_output(&format!("GLSL Parse Error: {:?}\n\nPreprocessed Code:\n{}", e, refined_code)),
     };
 
     // 2. Validate

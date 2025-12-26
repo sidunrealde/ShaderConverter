@@ -3,10 +3,13 @@ name = "shader-converter-engine"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1.7"
-naga = { version = "0.19", features = ["glsl-in", "hlsl-out", "wgsl-out", "msl-out", "spv-out"] } 
+naga = { version = "0.19", features = ["glsl-in", "hlsl-out", "wgsl-out", "msl-out", "spv-out"] }

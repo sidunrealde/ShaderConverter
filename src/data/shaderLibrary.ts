@@ -5,9 +5,10 @@ export interface ShaderSnippet {
     code: string;
 }
 
-const HEADER = `#version 300 es
-precision highp float;
-
+// Pure GLSL without version/precision for compatibility
+// Three.js prepends #version 300 es
+// Rust Engine will prepend/wrap as needed
+const HEADER = `
 in vec2 vUv;
 in vec3 vNormal;
 in vec3 vViewPosition;
