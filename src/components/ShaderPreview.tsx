@@ -108,6 +108,34 @@ const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = '
     }
 };
 
+import { Component, ReactNode, Suspense } from 'react';
+
+class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode }, { hasError: boolean }> {
+    constructor(props: any) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+    componentDidCatch(error: any, errorInfo: any) {
+        console.error("ShaderPreview Error:", error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback || <mesh><boxGeometry /><meshBasicMaterial color="red" /></mesh>;
+        }
+        return this.props.children;
+    }
+}
+
+const LoadingFallback = () => (
+    <mesh>
+        <boxGeometry args={[0.5, 0.5, 0.5]} />
+        <meshBasicMaterial color="yellow" wireframe />
+    </mesh>
+);
+
 export const ShaderPreview = (props: ShaderPreviewProps) => {
     return (
         <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-black relative">
@@ -116,8 +144,13 @@ export const ShaderPreview = (props: ShaderPreviewProps) => {
                 <OrbitControls makeDefault />
                 <ambientLight intensity={0.5} />
                 <pointLight position={[10, 10, 10]} />
-                <PreviewMesh {...props} meshType={props.meshType || 'plane'} />
                 <gridHelper args={[20, 20, 0x444444, 0x222222]} />
+
+                <ErrorBoundary fallback={<mesh><boxGeometry /><meshBasicMaterial color="magenta" /></mesh>}>
+                    <Suspense fallback={<LoadingFallback />}>
+                        <PreviewMesh {...props} meshType={props.meshType || 'plane'} />
+                    </Suspense>
+                </ErrorBoundary>
             </Canvas>
         </div>
     );
