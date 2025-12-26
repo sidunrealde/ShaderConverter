@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use naga::{front, back, valid};
+use naga::{front, back, valid, ResourceBinding};
 
 #[wasm_bindgen]
 pub fn init_panic_hook() {
@@ -48,6 +48,11 @@ pub fn convert_glsl(code: &str, format: &str, stage_str: &str) -> ConversionOutp
     clean_code = clean_code.replace("uniform float uTime;", "// uniform float uTime;");
     clean_code = clean_code.replace("uniform vec2 uResolution;", "// uniform vec2 uResolution;");
 
+    // Inject layout locations for standard inputs to prevent BindingCollision
+    clean_code = clean_code.replace("in vec2 vUv;", "layout(location=0) in vec2 vUv;");
+    clean_code = clean_code.replace("in vec3 vNormal;", "layout(location=1) in vec3 vNormal;");
+    clean_code = clean_code.replace("in vec3 vViewPosition;", "layout(location=2) in vec3 vViewPosition;");
+
     // Construct the "Vulkanized" header
     // Use binding set 0, binding 0 as a default standard for our tool
     let refined_code = format!(r#"#version 450
@@ -68,6 +73,7 @@ layout(std140, set=0, binding=0) uniform Globals {{
         Ok(m) => m,
         Err(e) => return error_output(&format!("GLSL Parse Error: {:?}\n\nPreprocessed Code:\n{}", e, refined_code)),
     };
+    // (No manual binding loop needed)
 
     // 2. Validate
     let mut validator = valid::Validator::new(valid::ValidationFlags::all(), valid::Capabilities::all());

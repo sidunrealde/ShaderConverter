@@ -77,11 +77,13 @@ const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = '
 export const ShaderPreview = (props: ShaderPreviewProps) => {
     return (
         <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-black relative">
-            <Canvas camera={{ position: [0, 0, 2] }}>
+            <Canvas camera={{ position: [0, 0, 3], fov: 75 }}>
                 <color attach="background" args={['#111']} />
-                <OrbitControls makeDefault enableDamping />
+                <OrbitControls makeDefault />
+                <ambientLight intensity={0.5} />
+                <pointLight position={[10, 10, 10]} />
                 <PreviewMesh {...props} meshType={props.meshType || 'plane'} />
-                <gridHelper args={[10, 10]} position={[0, -2, 0]} />
+                <gridHelper args={[20, 20, 0x444444, 0x222222]} />
             </Canvas>
         </div>
     );
