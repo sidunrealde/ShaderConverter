@@ -1,11 +1,11 @@
-
-import { useState } from 'react';
+import clsx from 'clsx';
+import { useState, useEffect } from 'react';
 import { CodeEditor } from './components/CodeEditor';
 import { useWasm } from './hooks/useWasm';
 import { SHADER_LIBRARY } from './data/shaderLibrary';
 import { ShaderPreview, MeshType } from './components/ShaderPreview';
+import { Sidebar } from './components/Sidebar';
 import { UrlService } from './services/urlService';
-import { useEffect } from 'react';
 
 function App() {
     const { wasm, isReady, error } = useWasm();
@@ -80,58 +80,50 @@ function App() {
             </header>
 
             <main className="flex flex-1 overflow-hidden">
-                <div className="flex h-full w-full flex-col p-4 gap-4">
+                {/* Sidebar */}
+                <Sidebar
+                    onSelectSnippet={setGlsl}
+                    currentMesh={meshType}
+                    onSelectMesh={(m) => setMeshType(m as MeshType)}
+                />
 
-                    {/* Top Row: Editor and Preview */}
-                    <div className="flex flex-1 gap-4 min-h-0">
+                {/* Main Content Area */}
+                <div className="flex h-full flex-1 flex-col">
+                    {/* Upper: Editor & Preview */}
+                    <div className="flex h-2/3 border-b border-zinc-800">
                         {/* Input Editor */}
-                        <div className="flex-1 flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-400 font-medium">Input (GLSL)</span>
-                                <div className="flex gap-2">
-                                    <select
-                                        className="bg-zinc-800 text-xs text-white border border-zinc-700 rounded px-2 py-1"
-                                        onChange={(e) => {
-                                            const s = SHADER_LIBRARY.find(x => x.id === e.target.value);
-                                            if (s) setGlsl(s.code);
-                                        }}
-                                    >
-                                        <option value="">Load Snippet...</option>
-                                        {SHADER_LIBRARY.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
-                                        ))}
-                                    </select>
-                                </div>
+                        <div className="flex w-1/2 flex-col border-r border-zinc-800">
+                            <div className="flex items-center justify-between bg-zinc-900 px-4 py-2 border-b border-zinc-800">
+                                <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">GLSL Source</span>
                             </div>
-                            <CodeEditor value={glsl} onChange={setGlsl} language="cpp" />
+                            <div className="flex-1 min-h-0">
+                                <CodeEditor value={glsl} onChange={setGlsl} language="cpp" />
+                            </div>
                         </div>
 
-                        {/* Live Preview */}
-                        <div className="flex-1 flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-400 font-medium">Live Preview</span>
-                                <select
-                                    value={meshType}
-                                    onChange={(e) => setMeshType(e.target.value as MeshType)}
-                                    className="bg-zinc-800 text-xs text-white border border-zinc-700 rounded px-2 py-1"
-                                >
-                                    <option value="plane">Plane</option>
-                                    <option value="box">Box</option>
-                                    <option value="sphere">Sphere</option>
-                                    <option value="torus">Torus</option>
-                                    <option value="knot">Knot</option>
-                                </select>
+                        {/* Preview */}
+                        <div className="relative flex w-1/2 flex-col bg-black">
+                            <div className="absolute top-2 right-2 z-10 flex gap-2">
+                                <div className="rounded bg-black/50 px-2 py-1 text-xs text-zinc-400 backdrop-blur">
+                                    {meshType.toUpperCase()}
+                                </div>
                             </div>
                             <ShaderPreview fragmentShader={glsl} meshType={meshType} />
                         </div>
                     </div>
 
-                    {/* Bottom Row: Output */}
-                    <div className="h-1/3 flex flex-col gap-2 min-h-0">
-                        <span className="text-sm text-zinc-400 font-medium">Output ({target.toUpperCase()})</span>
-                        <CodeEditor value={output} readOnly language="cpp" />
+                    {/* Lower: Output */}
+                    <div className="flex h-1/3 flex-col bg-zinc-900">
+                        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+                            <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Compiled Output ({target})</span>
+                            <span className={clsx("text-xs", output.startsWith('// Error') ? "text-red-400" : "text-green-500")}>
+                                {output.startsWith('// Error') ? 'Compilation Failed' : 'Ready'}
+                            </span>
+                        </div>
+                        <div className="flex-1 min-h-0">
+                            <CodeEditor value={output} readOnly language="cpp" />
+                        </div>
                     </div>
-
                 </div>
             </main>
         </div>
