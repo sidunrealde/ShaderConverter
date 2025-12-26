@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
 
 export type MeshType = 'plane' | 'box' | 'sphere' | 'torus' | 'knot' | string;
+type LightingMode = 'shader' | 'lit';
 
 interface ShaderPreviewProps {
     fragmentShader: string;
@@ -27,8 +28,8 @@ void main() {
 }
 `;
 
-// Separate component for custom models to avoid hooks rule violation
-const CustomModelMesh = ({ url, fragmentShader, vertexShader }: { url: string, fragmentShader: string, vertexShader: string }) => {
+// Custom Model with Shader Material
+const CustomModelShader = ({ url, fragmentShader, vertexShader }: { url: string, fragmentShader: string, vertexShader: string }) => {
     const gltf = useLoader(GLTFLoader, url);
 
     const uniforms = useMemo(() => ({
@@ -52,7 +53,6 @@ const CustomModelMesh = ({ url, fragmentShader, vertexShader }: { url: string, f
         if (!gltf) return null;
         const s = gltf.scene.clone();
 
-        // Auto-scale to fit roughly in a 2x2x2 box
         const box = new THREE.Box3().setFromObject(s);
         const size = new THREE.Vector3();
         box.getSize(size);
@@ -60,7 +60,6 @@ const CustomModelMesh = ({ url, fragmentShader, vertexShader }: { url: string, f
         const scale = 2.0 / (maxDim || 1);
         s.scale.setScalar(scale);
 
-        // Center the model
         box.setFromObject(s);
         const center = new THREE.Vector3();
         box.getCenter(center);
@@ -77,7 +76,46 @@ const CustomModelMesh = ({ url, fragmentShader, vertexShader }: { url: string, f
     return scene ? <primitive object={scene} /> : null;
 };
 
-const PrimitiveMesh = ({ fragmentShader, vertexShader, meshType }: { fragmentShader: string, vertexShader: string, meshType: string }) => {
+// Custom Model with Standard Material (for Lit mode)
+const CustomModelLit = ({ url }: { url: string }) => {
+    const gltf = useLoader(GLTFLoader, url);
+
+    const scene = useMemo(() => {
+        if (!gltf) return null;
+        const s = gltf.scene.clone();
+
+        const box = new THREE.Box3().setFromObject(s);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 2.0 / (maxDim || 1);
+        s.scale.setScalar(scale);
+
+        box.setFromObject(s);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        s.position.sub(center);
+
+        // Use StandardMaterial for HDRI lighting
+        const litMaterial = new THREE.MeshStandardMaterial({
+            color: 0xcccccc,
+            metalness: 0.5,
+            roughness: 0.3,
+        });
+
+        s.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+                (child as THREE.Mesh).material = litMaterial;
+            }
+        });
+        return s;
+    }, [gltf]);
+
+    return scene ? <primitive object={scene} /> : null;
+};
+
+// Primitive mesh with Shader Material
+const PrimitiveMeshShader = ({ fragmentShader, vertexShader, meshType }: { fragmentShader: string, vertexShader: string, meshType: string }) => {
     const mesh = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -117,19 +155,55 @@ const PrimitiveMesh = ({ fragmentShader, vertexShader, meshType }: { fragmentSha
     }
 };
 
-const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = 'plane' }: { fragmentShader: string, vertexShader?: string, meshType: MeshType }) => {
-    // Fallback shader to prevent crash
+// Primitive mesh with Standard Material (for Lit mode)
+const PrimitiveMeshLit = ({ meshType }: { meshType: string }) => {
+    const mesh = useRef<THREE.Mesh>(null);
+    const Material = <meshStandardMaterial attach="material" color={0xcccccc} metalness={0.5} roughness={0.3} />;
+
+    switch (meshType) {
+        case 'box':
+            return <Box key="box" args={[1.5, 1.5, 1.5]} ref={mesh}>{Material}</Box>;
+        case 'sphere':
+            return <Sphere key="sphere" args={[1, 64, 64]} ref={mesh}>{Material}</Sphere>;
+        case 'torus':
+            return <Torus key="torus" args={[0.8, 0.4, 64, 64]} ref={mesh}>{Material}</Torus>;
+        case 'knot':
+            return <TorusKnot key="knot" args={[0.6, 0.2, 128, 32]} ref={mesh}>{Material}</TorusKnot>;
+        case 'plane':
+        default:
+            return <Plane key="plane" args={[2, 2]} ref={mesh}>{Material}</Plane>;
+    }
+};
+
+interface PreviewMeshProps {
+    fragmentShader: string;
+    vertexShader?: string;
+    meshType: MeshType;
+    lightingMode: LightingMode;
+}
+
+const PreviewMesh = ({ fragmentShader, vertexShader = GLSL3_VERTEX, meshType = 'plane', lightingMode }: PreviewMeshProps) => {
     const safeFragmentShader = fragmentShader || `
         out vec4 fragColor;
         void main() { fragColor = vec4(1.0, 0.0, 1.0, 1.0); }
     `;
 
-    if (meshType.startsWith('custom:')) {
-        const url = meshType.replace('custom:', '');
-        return <CustomModelMesh url={url} fragmentShader={safeFragmentShader} vertexShader={vertexShader} />;
+    const isCustom = meshType.startsWith('custom:');
+    const url = isCustom ? meshType.replace('custom:', '') : '';
+
+    if (lightingMode === 'lit') {
+        // Lit mode: Use StandardMaterial
+        if (isCustom) {
+            return <CustomModelLit url={url} />;
+        }
+        return <PrimitiveMeshLit meshType={meshType} />;
     }
 
-    return <PrimitiveMesh fragmentShader={safeFragmentShader} vertexShader={vertexShader} meshType={meshType} />;
+    // Shader mode: Use custom ShaderMaterial
+    if (isCustom) {
+        return <CustomModelShader url={url} fragmentShader={safeFragmentShader} vertexShader={vertexShader} />;
+    }
+    return <PrimitiveMeshShader fragmentShader={safeFragmentShader} vertexShader={vertexShader} meshType={meshType} />;
 };
 
 class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode, resetKey?: string }, { hasError: boolean }> {
@@ -141,7 +215,6 @@ class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNod
         return { hasError: true };
     }
     componentDidUpdate(prevProps: { resetKey?: string }) {
-        // Reset error state when resetKey changes
         if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
             this.setState({ hasError: false });
         }
@@ -164,51 +237,41 @@ const LoadingFallback = () => (
     </mesh>
 );
 
-// Rotatable Environment for HDRI lighting
-const RotatableEnvironment = ({ enabled, rotation }: { enabled: boolean, rotation: number }) => {
-    if (!enabled) return null;
-    return (
-        <Environment
-            preset="sunset"
-            background={false}
-            environmentRotation={[0, rotation, 0]}
-        />
-    );
-};
-
 export const ShaderPreview = (props: ShaderPreviewProps) => {
-    const [lightingMode, setLightingMode] = useState<'basic' | 'hdri'>('basic');
+    const [lightingMode, setLightingMode] = useState<LightingMode>('shader');
     const [hdriRotation, setHdriRotation] = useState(0);
 
     return (
         <div className="h-full w-full overflow-hidden rounded-md border border-zinc-700 bg-black relative">
             {/* Lighting Controls */}
-            <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+            <div className="absolute top-2 left-2 z-10 flex flex-col gap-2 bg-black/50 p-2 rounded backdrop-blur">
                 <div className="flex gap-1">
                     <button
-                        onClick={() => setLightingMode('basic')}
-                        className={`px-2 py-1 text-[10px] rounded ${lightingMode === 'basic' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                        onClick={() => setLightingMode('shader')}
+                        className={`px-2 py-1 text-[10px] rounded transition-colors ${lightingMode === 'shader' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
                     >
-                        Basic
+                        Shader
                     </button>
                     <button
-                        onClick={() => setLightingMode('hdri')}
-                        className={`px-2 py-1 text-[10px] rounded ${lightingMode === 'hdri' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}
+                        onClick={() => setLightingMode('lit')}
+                        className={`px-2 py-1 text-[10px] rounded transition-colors ${lightingMode === 'lit' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
                     >
-                        HDRI
+                        Lit (HDRI)
                     </button>
                 </div>
-                {lightingMode === 'hdri' && (
-                    <input
-                        type="range"
-                        min="0"
-                        max={Math.PI * 2}
-                        step="0.1"
-                        value={hdriRotation}
-                        onChange={(e) => setHdriRotation(parseFloat(e.target.value))}
-                        className="w-20 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
-                        title="Rotate HDRI"
-                    />
+                {lightingMode === 'lit' && (
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[9px] text-zinc-500">Rotate HDRI</span>
+                        <input
+                            type="range"
+                            min="0"
+                            max={Math.PI * 2}
+                            step="0.1"
+                            value={hdriRotation}
+                            onChange={(e) => setHdriRotation(parseFloat(e.target.value))}
+                            className="w-24 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+                        />
+                    </div>
                 )}
             </div>
 
@@ -216,24 +279,36 @@ export const ShaderPreview = (props: ShaderPreviewProps) => {
                 <color attach="background" args={['#111']} />
                 <OrbitControls makeDefault />
 
-                {/* Lighting */}
-                {lightingMode === 'basic' ? (
+                {/* Lighting based on mode */}
+                {lightingMode === 'shader' ? (
                     <>
                         <ambientLight intensity={0.5} />
-                        <pointLight position={[10, 10, 10]} />
+                        <pointLight position={[10, 10, 10]} intensity={1} />
                     </>
                 ) : (
-                    <RotatableEnvironment enabled={true} rotation={hdriRotation} />
+                    <>
+                        <Environment
+                            preset="sunset"
+                            background={false}
+                            environmentRotation={[0, hdriRotation, 0]}
+                        />
+                        <ambientLight intensity={0.2} />
+                    </>
                 )}
 
                 <gridHelper args={[20, 20, 0x444444, 0x222222]} />
 
                 <ErrorBoundary
-                    resetKey={props.meshType}
+                    resetKey={`${props.meshType}-${lightingMode}`}
                     fallback={<mesh><boxGeometry /><meshBasicMaterial color="magenta" /></mesh>}
                 >
                     <Suspense fallback={<LoadingFallback />}>
-                        <PreviewMesh {...props} meshType={props.meshType || 'plane'} />
+                        <PreviewMesh
+                            fragmentShader={props.fragmentShader}
+                            vertexShader={props.vertexShader}
+                            meshType={props.meshType || 'plane'}
+                            lightingMode={lightingMode}
+                        />
                     </Suspense>
                 </ErrorBoundary>
             </Canvas>

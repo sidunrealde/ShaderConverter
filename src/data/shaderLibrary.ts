@@ -642,5 +642,616 @@ void main() {
     vec3 lava = vec3(1.,flow,.1); 
     fragColor = vec4(lava,1.); 
 }`
+    },
+
+    // === 50 NEW SHADERS ===
+
+    // --- BASIC/UTILITY ---
+    {
+        id: 'gradient_linear',
+        name: 'Linear Gradient',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    vec3 col = mix(vec3(0.2, 0.4, 0.8), vec3(0.8, 0.2, 0.4), vUv.x);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'gradient_diagonal',
+        name: 'Diagonal Gradient',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    float t = (vUv.x + vUv.y) * 0.5;
+    vec3 col = mix(vec3(0.1, 0.8, 0.5), vec3(0.9, 0.3, 0.1), t);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'solid_checker_3d',
+        name: '3D Checker',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    vec3 p = vViewPosition * 5.0;
+    float c = mod(floor(p.x) + floor(p.y) + floor(p.z), 2.0);
+    fragColor = vec4(vec3(c), 1.0);
+}`
+    },
+    {
+        id: 'backface_color',
+        name: 'Backface Tint',
+        category: 'basic',
+        code: `${HEADER}
+void main() {
+    vec3 col = gl_FrontFacing ? vec3(0.2, 0.6, 1.0) : vec3(1.0, 0.3, 0.2);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+
+    // --- MATH/SDF ---
+    {
+        id: 'sdf_star',
+        name: 'Star SDF',
+        category: 'math',
+        code: `${HEADER}
+float sdStar(vec2 p, float r, int n, float m) {
+    float an = 3.14159/float(n);
+    float en = 3.14159/m;
+    vec2 acs = vec2(cos(an), sin(an));
+    vec2 ecs = vec2(cos(en), sin(en));
+    float bn = mod(atan(p.x, p.y), 2.0*an) - an;
+    p = length(p)*vec2(cos(bn), abs(sin(bn)));
+    p -= r*acs;
+    p += ecs*clamp(-dot(p, ecs), 0.0, r*acs.y/ecs.y);
+    return length(p)*sign(p.x);
+}
+void main() {
+    vec2 p = vUv * 2.0 - 1.0;
+    float d = sdStar(p, 0.5, 5, 2.5);
+    float c = 1.0 - smoothstep(0.0, 0.02, d);
+    fragColor = vec4(vec3(c, c*0.8, 0.2), 1.0);
+}`
+    },
+    {
+        id: 'sdf_heart',
+        name: 'Heart SDF',
+        category: 'math',
+        code: `${HEADER}
+float sdHeart(vec2 p) {
+    p.x = abs(p.x);
+    if(p.y + p.x > 1.0) return sqrt(dot(p - vec2(0.25, 0.75), p - vec2(0.25, 0.75))) - 0.25;
+    return sqrt(min(dot(p - vec2(0.0, 1.0), p - vec2(0.0, 1.0)),
+                    dot(p - 0.5*max(p.x + p.y, 0.0), p - 0.5*max(p.x + p.y, 0.0)))) * sign(p.x - p.y);
+}
+void main() {
+    vec2 p = (vUv * 2.0 - 1.0) * 1.5;
+    p.y -= 0.3;
+    float d = sdHeart(p);
+    float c = 1.0 - smoothstep(0.0, 0.02, d);
+    fragColor = vec4(c, 0.1, 0.2, 1.0);
+}`
+    },
+    {
+        id: 'fractal_mandelbrot',
+        name: 'Mandelbrot Set',
+        category: 'math',
+        code: `${HEADER}
+void main() {
+    vec2 c = (vUv - 0.5) * 3.5 - vec2(0.5, 0.0);
+    vec2 z = vec2(0.0);
+    float iter = 0.0;
+    for(int i = 0; i < 64; i++) {
+        z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+        if(dot(z, z) > 4.0) break;
+        iter += 1.0;
+    }
+    float t = iter / 64.0;
+    vec3 col = 0.5 + 0.5*cos(3.0 + t*6.28 + vec3(0.0, 0.6, 1.0));
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'fractal_julia',
+        name: 'Julia Set',
+        category: 'math',
+        code: `${HEADER}
+void main() {
+    vec2 z = (vUv - 0.5) * 3.0;
+    vec2 c = vec2(-0.7, 0.27015);
+    float iter = 0.0;
+    for(int i = 0; i < 64; i++) {
+        z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+        if(dot(z, z) > 4.0) break;
+        iter += 1.0;
+    }
+    float t = iter / 64.0;
+    vec3 col = vec3(t, t*0.5, 1.0 - t);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'sdf_rounded_box',
+        name: 'Rounded Box',
+        category: 'math',
+        code: `${HEADER}
+float sdRoundedBox(vec2 p, vec2 b, float r) {
+    vec2 q = abs(p) - b + r;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+}
+void main() {
+    vec2 p = vUv * 2.0 - 1.0;
+    float d = sdRoundedBox(p, vec2(0.5, 0.3), 0.1);
+    float c = 1.0 - smoothstep(0.0, 0.02, d);
+    fragColor = vec4(vec3(0.2, c*0.8, c), 1.0);
+}`
+    },
+
+    // --- PATTERNS ---
+    {
+        id: 'pattern_hexagon',
+        name: 'Hexagon Grid',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * 10.0;
+    vec2 r = vec2(1.0, 1.732);
+    vec2 h = r * 0.5;
+    vec2 a = mod(uv, r) - h;
+    vec2 b = mod(uv - h, r) - h;
+    float d = min(dot(a, a), dot(b, b));
+    fragColor = vec4(vec3(sqrt(d)), 1.0);
+}`
+    },
+    {
+        id: 'pattern_dots',
+        name: 'Polka Dots',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * 15.0;
+    vec2 f = fract(uv) - 0.5;
+    float d = length(f);
+    float c = 1.0 - smoothstep(0.2, 0.22, d);
+    fragColor = vec4(c, 0.2, 0.4, 1.0);
+}`
+    },
+    {
+        id: 'pattern_waves',
+        name: 'Wave Lines',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    float wave = sin(vUv.x * 30.0 + sin(vUv.y * 10.0)) * 0.5 + 0.5;
+    fragColor = vec4(wave, wave * 0.5, 1.0 - wave, 1.0);
+}`
+    },
+    {
+        id: 'pattern_stripes',
+        name: 'Animated Stripes',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    float stripe = step(0.5, fract((vUv.x + vUv.y) * 20.0 + uTime));
+    fragColor = vec4(vec3(stripe), 1.0);
+}`
+    },
+    {
+        id: 'pattern_spiral',
+        name: 'Spiral Pattern',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    vec2 p = vUv - 0.5;
+    float r = length(p);
+    float a = atan(p.y, p.x);
+    float spiral = sin(a * 5.0 + r * 30.0 - uTime * 3.0);
+    fragColor = vec4(spiral * 0.5 + 0.5, 0.3, 0.8, 1.0);
+}`
+    },
+    {
+        id: 'pattern_brick',
+        name: 'Brick Wall',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * vec2(10.0, 20.0);
+    float row = floor(uv.y);
+    uv.x += mod(row, 2.0) * 0.5;
+    vec2 brick = fract(uv);
+    float mortar = step(0.05, brick.x) * step(0.05, brick.y) * step(brick.x, 0.95) * step(brick.y, 0.9);
+    vec3 col = mix(vec3(0.3), vec3(0.8, 0.3, 0.2), mortar);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'pattern_zebra',
+        name: 'Zebra Stripes',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 5.0);
+    float stripe = step(0.5, fract(vUv.y * 15.0 + n * 2.0));
+    fragColor = vec4(vec3(stripe), 1.0);
+}`
+    },
+    {
+        id: 'pattern_camo',
+        name: 'Camouflage',
+        category: 'patterns',
+        code: `${HEADER}
+void main() {
+    float n1 = noise(vUv * 5.0);
+    float n2 = noise(vUv * 10.0 + 100.0);
+    float n3 = noise(vUv * 15.0 + 200.0);
+    vec3 col = n1 > 0.6 ? vec3(0.2, 0.3, 0.1) : n2 > 0.5 ? vec3(0.4, 0.35, 0.2) : vec3(0.15, 0.2, 0.1);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+
+    // --- 3D/LIGHTING ---
+    {
+        id: '3d_toon',
+        name: 'Toon Shading',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 l = normalize(vec3(1.0, 1.0, 1.0));
+    float diff = max(dot(n, l), 0.0);
+    float toon = floor(diff * 4.0) / 4.0;
+    vec3 col = vec3(0.2, 0.6, 1.0) * (toon + 0.2);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: '3d_matcap',
+        name: 'Fake Matcap',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec2 matcapUV = n.xy * 0.5 + 0.5;
+    vec3 col = vec3(matcapUV, 0.5);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: '3d_outline',
+        name: 'Outline Effect',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 v = normalize(vViewPosition);
+    float edge = 1.0 - abs(dot(n, v));
+    float outline = smoothstep(0.6, 0.8, edge);
+    vec3 col = mix(vec3(0.9, 0.5, 0.2), vec3(0.0), outline);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: '3d_emission',
+        name: 'Emission Glow',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    float pulse = sin(uTime * 3.0) * 0.5 + 0.5;
+    vec3 emission = vec3(0.0, 1.0, 0.5) * pulse * 2.0;
+    fragColor = vec4(emission, 1.0);
+}`
+    },
+    {
+        id: '3d_iridescent',
+        name: 'Iridescent',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 v = normalize(vViewPosition);
+    float fresnel = 1.0 - abs(dot(n, v));
+    vec3 col = 0.5 + 0.5 * cos(fresnel * 6.28 + vec3(0.0, 2.0, 4.0));
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: '3d_subsurface',
+        name: 'Subsurface Scatter',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 l = normalize(vec3(1.0, 1.0, 0.5));
+    float wrap = max(dot(n, l) + 0.5, 0.0) / 1.5;
+    vec3 col = vec3(1.0, 0.4, 0.3) * wrap + vec3(0.1, 0.0, 0.0);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: '3d_hologram',
+        name: 'Hologram',
+        category: '3d',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 v = normalize(vViewPosition);
+    float fresnel = pow(1.0 - abs(dot(n, v)), 2.0);
+    float scan = sin(vViewPosition.y * 50.0 + uTime * 10.0) * 0.5 + 0.5;
+    vec3 col = vec3(0.0, 1.0, 1.0) * fresnel + vec3(0.0, 0.5, 1.0) * scan * 0.3;
+    fragColor = vec4(col, fresnel * 0.8 + 0.2);
+}`
+    },
+
+    // --- ART/VFX ---
+    {
+        id: 'art_plasma',
+        name: 'Plasma Effect',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * 10.0;
+    float t = uTime;
+    float v = sin(uv.x + t) + sin(uv.y + t) + sin(uv.x + uv.y + t);
+    v += sin(sqrt(uv.x*uv.x + uv.y*uv.y) + t);
+    vec3 col = 0.5 + 0.5 * cos(v * 2.0 + vec3(0.0, 2.0, 4.0));
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'art_water',
+        name: 'Water Caustics',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * 5.0 + uTime * 0.5;
+    float c = 0.0;
+    for(int i = 0; i < 3; i++) {
+        float fi = float(i);
+        c += abs(sin(uv.x * (1.0 + fi) + uTime) * cos(uv.y * (2.0 + fi) + uTime));
+    }
+    c /= 3.0;
+    vec3 col = vec3(0.0, 0.3 + c * 0.5, 0.5 + c * 0.5);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'art_fireball',
+        name: 'Fireball',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 p = vUv - 0.5;
+    float r = length(p);
+    float n = noise(vUv * 10.0 + uTime * 2.0);
+    float fire = 1.0 - smoothstep(0.3 - n * 0.1, 0.5, r);
+    vec3 col = mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 0.0), fire);
+    fragColor = vec4(col * fire, fire);
+}`
+    },
+    {
+        id: 'art_smoke',
+        name: 'Smoke Wisps',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    uv.y -= uTime * 0.1;
+    float n = noise(uv * 8.0) * noise(uv * 16.0 + 100.0);
+    n *= smoothstep(0.0, 0.5, vUv.y) * smoothstep(1.0, 0.5, vUv.y);
+    vec3 col = vec3(0.5, 0.5, 0.55) * n;
+    fragColor = vec4(col, n);
+}`
+    },
+    {
+        id: 'art_neon_glow',
+        name: 'Neon Glow',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 p = vUv - 0.5;
+    float d = abs(length(p) - 0.3);
+    float glow = 0.02 / d;
+    vec3 col = vec3(1.0, 0.0, 0.5) * glow;
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'art_disco',
+        name: 'Disco Ball',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * 20.0;
+    vec2 id = floor(uv);
+    float bright = hash(id + floor(uTime * 5.0));
+    vec3 col = 0.5 + 0.5 * cos(bright * 6.28 + vec3(0.0, 2.0, 4.0));
+    fragColor = vec4(col * bright, 1.0);
+}`
+    },
+    {
+        id: 'art_kaleidoscope',
+        name: 'Kaleidoscope',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 p = vUv - 0.5;
+    float a = atan(p.y, p.x);
+    float segments = 8.0;
+    a = mod(a, 6.28 / segments) * segments;
+    vec2 uv = vec2(cos(a), sin(a)) * length(p);
+    float n = noise(uv * 10.0 + uTime);
+    vec3 col = 0.5 + 0.5 * cos(n * 6.28 + vec3(0.0, 2.0, 4.0));
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'art_glitch',
+        name: 'Glitch Effect',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv;
+    float glitch = step(0.99, hash(vec2(floor(vUv.y * 50.0), floor(uTime * 20.0))));
+    uv.x += glitch * 0.1;
+    vec3 col = vec3(hash(floor(uv * 100.0 + uTime)));
+    col.r = hash(floor((uv + 0.01) * 100.0 + uTime));
+    col.b = hash(floor((uv - 0.01) * 100.0 + uTime));
+    fragColor = vec4(mix(vec3(vUv, 0.5), col, glitch), 1.0);
+}`
+    },
+    {
+        id: 'art_rainbow',
+        name: 'Rainbow Wave',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    float t = vUv.x + vUv.y + uTime * 0.5;
+    vec3 col = 0.5 + 0.5 * cos(t * 6.28 + vec3(0.0, 2.0, 4.0));
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'art_northern_lights',
+        name: 'Northern Lights',
+        category: 'art',
+        code: `${HEADER}
+void main() {
+    float n = noise(vec2(vUv.x * 3.0, uTime * 0.5)) * 0.5;
+    float band = smoothstep(0.3 + n, 0.35 + n, vUv.y) * smoothstep(0.7 - n, 0.65 - n, vUv.y);
+    vec3 col = mix(vec3(0.0), vec3(0.0, 1.0, 0.5), band);
+    col += vec3(0.5, 0.0, 1.0) * noise(vUv * 10.0 + uTime) * band;
+    fragColor = vec4(col, 1.0);
+}`
+    },
+
+    // --- PBR ---
+    {
+        id: 'pbr_glass',
+        name: 'Frosted Glass',
+        category: 'pbr',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 v = normalize(vViewPosition);
+    float fresnel = pow(1.0 - abs(dot(n, v)), 3.0);
+    float frost = noise(vUv * 20.0) * 0.2;
+    vec3 col = vec3(0.9, 0.95, 1.0) * (0.3 + fresnel) + frost;
+    fragColor = vec4(col, 0.5 + fresnel * 0.3);
+}`
+    },
+    {
+        id: 'pbr_copper',
+        name: 'Aged Copper',
+        category: 'pbr',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 l = normalize(vec3(1.0));
+    float diff = max(dot(n, l), 0.0);
+    float patina = noise(vUv * 10.0);
+    vec3 copper = vec3(0.7, 0.4, 0.2);
+    vec3 green = vec3(0.2, 0.5, 0.4);
+    vec3 col = mix(copper, green, patina * 0.5) * (diff + 0.2);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'pbr_concrete',
+        name: 'Concrete',
+        category: 'pbr',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 15.0) * 0.1;
+    vec3 col = vec3(0.5 + n, 0.5 + n, 0.52 + n);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'pbr_plastic',
+        name: 'Glossy Plastic',
+        category: 'pbr',
+        code: `${HEADER}
+void main() {
+    vec3 n = normalize(vNormal);
+    vec3 v = normalize(vViewPosition);
+    vec3 l = normalize(vec3(1.0, 1.0, 1.0));
+    vec3 h = normalize(l + v);
+    float spec = pow(max(dot(n, h), 0.0), 64.0);
+    vec3 col = vec3(0.8, 0.1, 0.2) + vec3(1.0) * spec;
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'pbr_carbon',
+        name: 'Carbon Fiber',
+        category: 'pbr',
+        code: `${HEADER}
+void main() {
+    vec2 uv = vUv * 50.0;
+    float weave = step(0.5, mod(floor(uv.x) + floor(uv.y), 2.0));
+    vec3 col = vec3(0.1 + weave * 0.05);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+
+    // --- TERRAIN ---
+    {
+        id: 'terrain_grass',
+        name: 'Grass Field',
+        category: 'terrain',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 20.0);
+    vec3 col = vec3(0.2, 0.5 + n * 0.2, 0.1);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'terrain_rock',
+        name: 'Rocky Surface',
+        category: 'terrain',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 10.0) * noise(vUv * 30.0 + 50.0);
+    vec3 col = vec3(0.4 + n * 0.3, 0.35 + n * 0.25, 0.3 + n * 0.2);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'terrain_ice',
+        name: 'Frozen Ice',
+        category: 'terrain',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 15.0);
+    float crack = smoothstep(0.48, 0.5, n);
+    vec3 col = mix(vec3(0.7, 0.9, 1.0), vec3(0.9, 0.95, 1.0), crack);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'terrain_mud',
+        name: 'Wet Mud',
+        category: 'terrain',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 8.0);
+    vec3 col = vec3(0.25 + n * 0.1, 0.18 + n * 0.08, 0.1 + n * 0.05);
+    fragColor = vec4(col, 1.0);
+}`
+    },
+    {
+        id: 'terrain_moss',
+        name: 'Mossy Stone',
+        category: 'terrain',
+        code: `${HEADER}
+void main() {
+    float n = noise(vUv * 12.0);
+    vec3 stone = vec3(0.4, 0.4, 0.42);
+    vec3 moss = vec3(0.2, 0.4, 0.15);
+    vec3 col = mix(stone, moss, smoothstep(0.4, 0.6, n));
+    fragColor = vec4(col, 1.0);
+}`
     }
 ];

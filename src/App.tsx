@@ -14,12 +14,15 @@ function App() {
     const [output, setOutput] = useState<string>('// Converted code will appear here');
     const [target, setTarget] = useState('hlsl');
     const [customModels, setCustomModels] = useState<{ id: string, name: string, url: string }[]>([]);
+    const [isDarkMode, setIsDarkMode] = useState(true);
 
     const handleUploadModel = (name: string, url: string) => {
         const newModel = { id: crypto.randomUUID(), name, url };
         setCustomModels(prev => [...prev, newModel]);
         setMeshType(`custom:${url}`);
     };
+
+    const toggleTheme = () => setIsDarkMode(prev => !prev);
 
     useEffect(() => {
         const hash = window.location.hash.slice(1);
@@ -51,19 +54,44 @@ function App() {
     }
 
     if (!isReady) {
-        return <div className="p-10 text-blue-500">Loading Shader Engine...</div>;
+        return (
+            <div className={clsx("flex h-screen items-center justify-center", isDarkMode ? "bg-zinc-950" : "bg-gray-50")}>
+                <div className="flex flex-col items-center gap-3">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+                    <p className={clsx("text-sm", isDarkMode ? "text-zinc-400" : "text-gray-600")}>Loading Shader Engine...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="flex h-screen flex-col bg-zinc-950 text-white">
-            <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-6 py-4">
-                <h1 className="text-xl font-bold tracking-tight">Shader Converter <span className="text-xs text-green-500 font-mono">WASM</span></h1>
+        <div className={clsx(
+            "flex h-screen flex-col transition-colors",
+            isDarkMode ? "bg-zinc-950 text-white" : "bg-gray-100 text-gray-900"
+        )}>
+            {/* Header */}
+            <header className={clsx(
+                "flex items-center justify-between border-b px-4 py-3",
+                isDarkMode ? "border-zinc-800 bg-zinc-900" : "border-gray-200 bg-white"
+            )}>
+                <div className="flex items-center gap-3">
+                    <img src="/favicon.png" alt="Logo" className="w-7 h-7" />
+                    <h1 className="text-lg font-bold tracking-tight">
+                        Shader Converter
+                        <span className="ml-2 text-[10px] text-green-500 font-mono bg-green-500/10 px-1.5 py-0.5 rounded">WASM</span>
+                    </h1>
+                </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <select
                         value={target}
                         onChange={e => setTarget(e.target.value)}
-                        className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-sm text-white"
+                        className={clsx(
+                            "rounded border px-3 py-1.5 text-sm font-medium transition-colors",
+                            isDarkMode
+                                ? "border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
+                                : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
+                        )}
                     >
                         <option value="hlsl">HLSL (Unreal/Unity)</option>
                         <option value="wgsl">WGSL (WebGPU)</option>
@@ -72,14 +100,19 @@ function App() {
 
                     <button
                         onClick={handleShare}
-                        className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm font-semibold hover:bg-zinc-700 transition-colors"
+                        className={clsx(
+                            "rounded border px-3 py-1.5 text-sm font-medium transition-colors",
+                            isDarkMode
+                                ? "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                : "border-gray-200 bg-white hover:bg-gray-50"
+                        )}
                     >
-                        Share
+                        📤 Share
                     </button>
 
                     <button
                         onClick={handleConvert}
-                        className="rounded bg-blue-600 px-4 py-1.5 text-sm font-semibold hover:bg-blue-500 transition-colors"
+                        className="rounded bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
                     >
                         Convert
                     </button>
@@ -94,16 +127,23 @@ function App() {
                     onSelectMesh={(m) => setMeshType(m as MeshType)}
                     customModels={customModels}
                     onUploadModel={handleUploadModel}
+                    isDarkMode={isDarkMode}
+                    onToggleTheme={toggleTheme}
                 />
 
                 {/* Main Content Area */}
                 <div className="flex h-full flex-1 flex-col">
                     {/* Upper: Editor & Preview */}
-                    <div className="flex h-2/3 border-b border-zinc-800">
+                    <div className={clsx("flex h-2/3 border-b", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
                         {/* Input Editor */}
-                        <div className="flex w-1/2 flex-col border-r border-zinc-800">
-                            <div className="flex items-center justify-between bg-zinc-900 px-4 py-2 border-b border-zinc-800">
-                                <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">GLSL Source</span>
+                        <div className={clsx("flex w-1/2 flex-col border-r", isDarkMode ? "border-zinc-800" : "border-gray-200")}>
+                            <div className={clsx(
+                                "flex items-center justify-between px-4 py-2 border-b",
+                                isDarkMode ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-200"
+                            )}>
+                                <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
+                                    GLSL Source
+                                </span>
                             </div>
                             <div className="flex-1 min-h-0">
                                 <CodeEditor value={glsl} onChange={setGlsl} language="cpp" />
@@ -114,7 +154,7 @@ function App() {
                         <div className="relative flex w-1/2 flex-col bg-black">
                             <div className="absolute top-2 right-2 z-10 flex gap-2">
                                 <div className="rounded bg-black/50 px-2 py-1 text-xs text-zinc-400 backdrop-blur">
-                                    {meshType.toUpperCase()}
+                                    {meshType.startsWith('custom:') ? 'CUSTOM' : meshType.toUpperCase()}
                                 </div>
                             </div>
                             <ShaderPreview fragmentShader={glsl} meshType={meshType} />
@@ -122,11 +162,16 @@ function App() {
                     </div>
 
                     {/* Lower: Output */}
-                    <div className="flex h-1/3 flex-col bg-zinc-900">
-                        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
-                            <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Compiled Output ({target})</span>
-                            <span className={clsx("text-xs", output.startsWith('// Error') ? "text-red-400" : "text-green-500")}>
-                                {output.startsWith('// Error') ? 'Compilation Failed' : 'Ready'}
+                    <div className={clsx("flex h-1/3 flex-col", isDarkMode ? "bg-zinc-900" : "bg-white")}>
+                        <div className={clsx(
+                            "flex items-center justify-between px-4 py-2 border-b",
+                            isDarkMode ? "border-zinc-800" : "border-gray-200"
+                        )}>
+                            <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
+                                Compiled Output ({target.toUpperCase()})
+                            </span>
+                            <span className={clsx("text-xs font-medium", output.startsWith('// Error') ? "text-red-400" : "text-green-500")}>
+                                {output.startsWith('// Error') ? '❌ Compilation Failed' : '✅ Ready'}
                             </span>
                         </div>
                         <div className="flex-1 min-h-0">
