@@ -74,6 +74,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 
 [[package]]
+name = "hexf-parse"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
+
+[[package]]
 name = "indexmap"
 version = "2.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -98,6 +104,7 @@ dependencies = [
  "bit-set",
  "bitflags",
  "codespan-reporting",
+ "hexf-parse",
  "indexmap",
  "log",
  "num-traits",
@@ -106,6 +113,7 @@ dependencies = [
  "spirv",
  "termcolor",
  "thiserror",
+ "unicode-xid",
 ]
 
 [[package]]

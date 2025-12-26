@@ -14,7 +14,8 @@ function App() {
     const [glsl, setGlsl] = useState<string>(SHADER_LIBRARY[0].code);
     const [meshType, setMeshType] = useState<MeshType>('box');
     const [output, setOutput] = useState<string>('// Converted code will appear here');
-    const [target, setTarget] = useState('hlsl');
+    const [sourceLang, setSourceLang] = useState('glsl');
+    const [targetLang, setTargetLang] = useState('hlsl');
     const [customModels, setCustomModels] = useState<{ id: string, name: string, url: string }[]>([]);
     const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -43,7 +44,7 @@ function App() {
 
     const handleConvert = () => {
         if (!wasm) return;
-        const res = wasm.convert_glsl(glsl, target, 'fragment');
+        const res = wasm.convert_shader(glsl, sourceLang, targetLang, 'fragment');
         if (res.success) {
             setOutput(res.output);
         } else {
@@ -66,6 +67,13 @@ function App() {
         );
     }
 
+    const selectStyle = clsx(
+        "rounded border px-3 py-1.5 text-sm font-medium transition-colors",
+        isDarkMode
+            ? "border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
+            : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
+    );
+
     return (
         <div className={clsx(
             "flex h-screen flex-col transition-colors",
@@ -83,26 +91,35 @@ function App() {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    {/* Source Language */}
                     <select
-                        value={target}
-                        onChange={e => setTarget(e.target.value)}
-                        className={clsx(
-                            "rounded border px-3 py-1.5 text-sm font-medium transition-colors",
-                            isDarkMode
-                                ? "border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
-                                : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
-                        )}
+                        value={sourceLang}
+                        onChange={e => setSourceLang(e.target.value)}
+                        className={selectStyle}
                     >
-                        <option value="hlsl">HLSL (Unreal/Unity)</option>
-                        <option value="wgsl">WGSL (WebGPU)</option>
-                        <option value="msl">MSL (Metal)</option>
+                        <option value="glsl">GLSL</option>
+                        <option value="wgsl">WGSL</option>
+                    </select>
+
+                    <span className={clsx("text-sm", isDarkMode ? "text-zinc-500" : "text-gray-400")}>→</span>
+
+                    {/* Target Language */}
+                    <select
+                        value={targetLang}
+                        onChange={e => setTargetLang(e.target.value)}
+                        className={selectStyle}
+                    >
+                        <option value="hlsl">HLSL</option>
+                        <option value="wgsl">WGSL</option>
+                        <option value="msl">MSL</option>
+                        <option value="glsl">GLSL</option>
                     </select>
 
                     <button
                         onClick={handleShare}
                         className={clsx(
-                            "rounded border px-3 py-1.5 text-sm font-medium transition-colors",
+                            "rounded border px-3 py-1.5 text-sm font-medium transition-colors ml-2",
                             isDarkMode
                                 ? "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
                                 : "border-gray-200 bg-white hover:bg-gray-50"
@@ -146,7 +163,7 @@ function App() {
                                             isDarkMode ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-200"
                                         )}>
                                             <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
-                                                GLSL Source
+                                                {sourceLang.toUpperCase()} Source
                                             </span>
                                         </div>
                                         <div className="flex-1 min-h-0">
@@ -177,7 +194,7 @@ function App() {
                                     isDarkMode ? "border-zinc-800" : "border-gray-200"
                                 )}>
                                     <span className={clsx("text-xs font-medium uppercase tracking-wider", isDarkMode ? "text-zinc-400" : "text-gray-500")}>
-                                        Compiled Output ({target.toUpperCase()})
+                                        Compiled Output ({targetLang.toUpperCase()})
                                     </span>
                                     <span className={clsx("text-xs font-medium", output.startsWith('// Error') ? "text-red-400" : "text-green-500")}>
                                         {output.startsWith('// Error') ? '❌ Compilation Failed' : '✅ Ready'}

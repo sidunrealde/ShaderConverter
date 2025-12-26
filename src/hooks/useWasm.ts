@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 interface WasmModule {
     init_panic_hook: () => void;
     convert_glsl: (code: string, format: string, stage: string) => any;
+    convert_shader: (code: string, source_lang: string, target_lang: string, stage: string) => any;
     greet: () => string;
 }
 
