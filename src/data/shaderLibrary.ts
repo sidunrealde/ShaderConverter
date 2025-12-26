@@ -1,7 +1,7 @@
 export interface ShaderSnippet {
     id: string;
     name: string;
-    category: 'basic' | 'math' | 'patterns' | '3d' | 'art';
+    category: 'basic' | 'math' | 'patterns' | '3d' | 'art' | 'pbr' | 'terrain';
     code: string;
 }
 
@@ -16,7 +16,21 @@ in vec3 vViewPosition;
 uniform float uTime;
 uniform vec2 uResolution;
 
+
 out vec4 fragColor;
+
+// Shared common functions
+float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
 `;
 
 export const SHADER_LIBRARY: ShaderSnippet[] = [
@@ -450,6 +464,183 @@ void main() {
         code: `${HEADER}
 void main() {
     fragColor = vec4(vNormal * 0.5 + 0.5, 1.0);
+}`
+    },
+
+    // --- PBR ---
+    {
+        id: 'pbr_gold',
+        name: 'PBR Gold',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    vec3 N = normalize(vNormal); 
+    vec3 L = normalize(vec3(10.0, 10.0, 10.0)); // Fixed Light
+    vec3 V = normalize(vViewPosition); 
+    float spec = pow(max(dot(reflect(-L,N),V),0.),32.); 
+    vec3 gold = vec3(.8,.6,.1) + spec; 
+    fragColor = vec4(gold,1.); 
+}`
+    },
+    {
+        id: 'pbr_rust',
+        name: 'Rusted Metal',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    float rust = noise(vUv * 10.0);
+    vec3 metal = vec3(.4,rust*.3,.2); 
+    fragColor = vec4(metal,1.); 
+}`
+    },
+    {
+        id: 'pbr_brushed',
+        name: 'Brushed Steel',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    float brush = sin(vUv.x*100.); 
+    vec3 steel = vec3(.9,.9,.9) - brush*.02; 
+    fragColor = vec4(steel,1.); 
+}`
+    },
+    {
+        id: 'pbr_marble',
+        name: 'Marble Veins',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    float vein = noise(vUv * 5.0);
+    vec3 marble = mix(vec3(.9),vec3(.7),vein); 
+    fragColor = vec4(marble,1.); 
+}`
+    },
+    {
+        id: 'pbr_wood',
+        name: 'Wood Grain',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    float grain = sin(vUv.y*50.) * .5 + .5; 
+    vec3 wood = vec3(.6,grain*.3,.2); 
+    fragColor = vec4(wood,1.); 
+}`
+    },
+    {
+        id: 'pbr_fabric',
+        name: 'Canvas Fabric',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    vec2 grid = fract(vUv*20.); 
+    float fabric = max(grid.x,grid.y); 
+    vec3 color = vec3(.9,fabric*.1,.9); 
+    fragColor = vec4(color,1.); 
+}`
+    },
+    {
+        id: 'pbr_leather',
+        name: 'Leather Texture',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    float leather = noise(vUv * 20.0);
+    vec3 brown = vec3(.4,leather*.2,.1); 
+    fragColor = vec4(brown,1.); 
+}`
+    },
+    {
+        id: 'pbr_chrome',
+        name: 'Chrome Reflect',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    vec3 reflectDir = reflect(normalize(vViewPosition), normalize(vNormal)); 
+    float chrome = pow(1. - abs(dot(reflectDir, vec3(0,0,1))), 2.); 
+    fragColor = vec4(vec3(chrome), 1.0); 
+}`
+    },
+    {
+        id: 'pbr_tile',
+        name: 'Ceramic Tiles',
+        category: 'pbr',
+        code: `${HEADER}
+void main() { 
+    vec2 tile = fract(vUv*5.); 
+    float edge = min(tile.x,1.-tile.x)*min(tile.y,1.-tile.y); 
+    vec3 ceramic = vec3(.95,edge+.95,.95); 
+    fragColor = vec4(ceramic,1.); 
+}`
+    },
+
+    // --- TERRAIN ---
+    {
+        id: 'terrain_height',
+        name: 'Height-based Terrain',
+        category: 'terrain',
+        code: `${HEADER}
+void main() { 
+    float v_height = vUv.y;
+    vec3 color = v_height > .5 ? vec3(.8,.6,.2) : v_height > .2 ? vec3(.2,.6,.2) : vec3(.1,.2,.4); 
+    fragColor = vec4(color,1.); 
+}`
+    },
+    {
+        id: 'terrain_snow',
+        name: 'Snowy Mountains',
+        category: 'terrain',
+        code: `${HEADER}
+void main() { 
+    float v_height = vUv.y + noise(vUv*10.0)*0.1;
+    float snow = smoothstep(.6, .8, v_height); 
+    vec3 rock = mix(vec3(.3), vec3(1.), snow); 
+    fragColor = vec4(rock,1.); 
+}`
+    },
+    {
+        id: 'terrain_dunes',
+        name: 'Desert Dunes',
+        category: 'terrain',
+        code: `${HEADER}
+void main() { 
+    float dune = noise(vUv * 5.0 + uTime*0.1); 
+    vec3 sand = vec3(.9,dune*.2+.4,dune*.1); 
+    fragColor = vec4(sand,1.); 
+}`
+    },
+    {
+        id: 'terrain_ocean',
+        name: 'Ocean Waves',
+        category: 'terrain',
+        code: `${HEADER}
+void main() { 
+    vec2 uv = vUv; 
+    float wave = sin(uv.x*10. + uTime*2.) * .1 + sin(uv.y*8. + uTime*1.5)*.1; 
+    vec3 ocean = vec3(.1,.3,wave+.6); 
+    fragColor = vec4(ocean,1.); 
+}`
+    },
+    {
+        id: 'terrain_volcano',
+        name: 'Volcanic Ash',
+        category: 'terrain',
+        code: `${HEADER}
+void main() { 
+    float v_height = vUv.y;
+    vec3 ash = vec3(.1,.08,.05) + v_height*.1; 
+    fragColor = vec4(ash,1.); 
+}`
+    },
+    {
+        id: 'terrain_lava',
+        name: 'Lava Flow',
+        category: 'terrain',
+        code: `${HEADER}
+void main() { 
+    vec2 uv = vUv; 
+    float flow = sin(uv.x*5. + uTime*2.)*.1; 
+    vec3 lava = vec3(1.,flow,.1); 
+    fragColor = vec4(lava,1.); 
 }`
     }
 ];
